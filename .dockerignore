@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Build output — not needed, builder stage uses mvn directly
+target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# CI/CD — not needed inside image
+.github/
+
+# Local tooling — not needed inside image
+checkstyle/
+mvnw.cmd
+
+# Documentation
+*.md
+HELP.md
+documentation/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker files themselves
+Dockerfile
+.dockerignore
