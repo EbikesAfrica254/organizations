@@ -30,7 +30,7 @@ jobs:
       name: staging
 
     env:
-      IMAGE_REPOSITORY: ebikes/organizatons
+      IMAGE_REPOSITORY: ebikes/organizations
 
     steps:
       - name: Derive image coordinates
@@ -122,7 +122,7 @@ jobs:
             BUILD_DATE=${{ steps.image.outputs.build_date }}
             VCS_REF=${{ steps.image.outputs.full_sha }}
           labels: |
-            org.opencontainers.image.title=eBikes Africa organizatons service
+            org.opencontainers.image.title=eBikes Africa organizations service
             org.opencontainers.image.version=staging
             org.opencontainers.image.created=${{ steps.image.outputs.build_date }}
             org.opencontainers.image.revision=${{ steps.image.outputs.full_sha }}
@@ -131,7 +131,7 @@ jobs:
           cache-from: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache-staging
           cache-to: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache-staging,mode=max
 
-      - name: Trigger organizatons deployment via SSM
+      - name: Trigger organizations deployment via SSM
         id: deploy
         shell: bash
         env:
@@ -149,8 +149,8 @@ jobs:
               --region "${{ vars.AWS_REGION }}" \
               --instance-ids "${INSTANCE_ID}" \
               --document-name "AWS-RunShellScript" \
-              --comment "Deploy organizatons sha-${SHORT_SHA}" \
-              --parameters commands="/usr/local/bin/deploy-application.sh deploy organizatons ${DEPLOYMENT_REFERENCE}" \
+              --comment "Deploy organizations sha-${SHORT_SHA}" \
+              --parameters commands="/usr/local/bin/deploy-application.sh deploy organizations ${DEPLOYMENT_REFERENCE}" \
               --query 'Command.CommandId' \
               --output text
           )"
