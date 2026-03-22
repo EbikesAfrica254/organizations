@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+        xmlns="https://github.com/spotbugs/filter/3.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
+
+    <!--
+      CT_CONSTRUCTOR_THROW: excluded for JPA @Entity classes only.
+
+      The finalizer attack this detector guards against requires a subclass to override finalize().
+      Since Java 9, the JVM does not invoke a finalizer if the constructor throws before
+      Object.<init> exits, making this attack vector moot on Java 21.
+
+      Additionally, JPA entities cannot be declared final because Hibernate requires
+      non-final classes to generate lazy-loading proxies, and the deprecated finalize()
+      approach is not acceptable on Java 21.
+
+      References:
+      - https://github.com/spotbugs/spotbugs/issues/2710
+      - https://github.com/spotbugs/spotbugs/issues/3417
+      - https://wiki.sei.cmu.edu/confluence/display/java/OBJ11-J.+Be+wary+of+letting+constructors+throw+exceptions
+    -->
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.database\.entities"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!--
+      EI_EXPOSE_REP / EI_EXPOSE_REP2: excluded for response and internal DTO packages.
+
+      These are outbound read-only snapshots and internal pipeline objects constructed
+      by mappers within the application boundary. No external party mutates these
+      collections after construction, so defensive copies add allocation overhead
+      with no security benefit.
+
+      Additionally, SpotBugs fires these as false positives on Java records even when
+      List.copyOf() is used in a compact constructor (confirmed bug):
+      - https://github.com/spotbugs/spotbugs/issues/3022
+      - https://github.com/spotbugs/spotbugs/issues/1771
+
+      Request DTOs (external input) are fixed in code with defensive copies instead.
+    -->
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.dtos\.responses\..+"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.dtos\.internal(\..+)?"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+      EI_EXPOSE_REP2: excluded for JPA entity @ManyToOne / @OneToMany association fields.
+
+      SpotBugs flags storing an externally passed object by reference as a potential
+      representation exposure. For JPA-managed entity associations this is a false positive:
+      defensive copying would detach the object from the Hibernate persistence context,
+      breaking lazy loading, dirty checking, and identity map semantics.
+    -->
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.database\.entities"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+      SE_BAD_FIELD: excluded for JPA entity classes.
+
+      SpotBugs fires this when a class in a Serializable hierarchy contains a field
+      whose type does not implement Serializable. JPA entities inherit Serializable
+      from a Spring Data base class (required for detached entity transport), but
+      embedded value objects mapped as jsonb columns (e.g. Address, DaySchedule)
+      do not need to implement Serializable because Java serialization is never
+      used in the Hibernate/jsonb persistence path.
+    -->
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.database\.entities"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+</FindBugsFilter>

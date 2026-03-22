@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: migrations/schema-changelog.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: migrations/seed-changelog.yaml
+      relativeToChangelogFile: true

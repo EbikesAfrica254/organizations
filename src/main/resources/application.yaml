@@ -1,0 +1,128 @@
+server:
+  port: ${SERVER_PORT:8087}
+  servlet:
+    context-path: /ebikes-organizations
+
+spring:
+  application:
+    name: ebikes-organizations
+
+  cloud:
+    function:
+      definition: incomingEventConsumer
+    stream:
+      output-bindings: eventPublisher-out-0
+      bindings:
+        incomingEventConsumer-in-0:
+          destination: ebikes.domain-events
+          group: ${RABBITMQ_CONSUMER_GROUP}
+        eventPublisher-out-0:
+          destination: ebikes.domain-events
+      rabbit:
+        bindings:
+          incomingEventConsumer-in-0:
+            consumer:
+              bindQueue: false
+              declareExchange: false
+              queueNameGroupOnly: true
+          eventPublisher-out-0:
+            producer:
+              declareExchange: false
+              routingKeyExpression: "headers['routingKey']"
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX}
+      minimum-idle: ${DB_POOL_MIN_IDLE}
+    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USER}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: organizations
+        format_sql: ${HIBERNATE_FORMAT_SQL}
+        show_sql: ${HIBERNATE_SHOW_SQL}
+
+  liquibase:
+    change-log: classpath:database/changelog/changelog-main.yaml
+    enabled: ${SPRING_LIQUIBASE_ENABLED}
+    liquibase-schema: organizations
+    parameters:
+      searchPath: classpath:database/changelog
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    password: ${RABBITMQ_PASSWORD}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
+
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: PT1H
+
+aws:
+  s3:
+    allowed-content-types:
+      KRA_PIN_CERT: application/pdf
+      BUSINESS_REGISTRATION_CERT: application/pdf,image/jpeg,image/png
+      COUNTY_PERMIT: application/pdf,image/jpeg,image/png
+      HEALTH_CERTIFICATE: application/pdf
+      NATIONAL_ID: image/jpeg,image/png
+      CERTIFICATE_OF_INCORPORATION: application/pdf
+      MEMORANDUM_ARTICLES: application/pdf
+      PARTNERSHIP_DEED: application/pdf
+      CERTIFICATE_OF_COMPLIANCE: application/pdf
+    bucket-name: ${AWS_S3_BUCKET_NAME}
+    endpoint: ${AWS_S3_ENDPOINT:}
+    max-file-size-mb: ${AWS_S3_MAX_FILE_SIZE_MB}
+    presigned-url-expiry-minutes: ${AWS_S3_PRESIGNED_URL_EXPIRY_MINUTES}
+    preview-url-expiry-minutes: ${AWS_S3_PREVIEW_URL_EXPIRY_MINUTES}
+    region: ${AWS_S3_REGION}
+
+javers:
+  auditableAspectEnabled: ${JAVERS_AUDITABLE_ASPECT_ENABLED}
+  mappingStyle: ${JAVERS_MAPPING_STYLE}
+  prettyPrint: ${JAVERS_PRETTY_PRINT}
+  springDataAuditableRepositoryAspectEnabled: ${JAVERS_SPRING_DATA_AUDITABLE_REPOSITORY_ASPECT_ENABLED}
+  sqlSchemaManagementEnabled: ${JAVERS_SQL_SCHEMA_MANAGEMENT_ENABLED}
+  typeSafeValues: ${JAVERS_TYPE_SAFE_VALUES}
+
+logging:
+  level:
+    root: INFO
+    com.ebikes: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoint:
+    health:
+      show-details: ${ACTUATOR_HEALTH_DETAILS:always}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+security:
+  public-endpoints:
+    - /actuator/health
+    - /actuator/prometheus
+  scopes:
+    - email
+    - openid
+    - profile

@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-organizations
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/01-organizations.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: 02-branches
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/02-branches.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: 03-branch-addresses
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/03-branch-addresses.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: 04-documents
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/04-documents.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: 05-inbox
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/05-inbox.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: 06-outbox
+      author: mango-habanero
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: schema/06-outbox.sql
+            relativeToChangelogFile: true
