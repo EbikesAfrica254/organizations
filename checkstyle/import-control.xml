@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<!DOCTYPE import-control PUBLIC
+        "-//Checkstyle//DTD ImportControl Configuration 1.4//EN"
+        "https://checkstyle.org/dtds/import_control_1_4.dtd">
+
+<import-control pkg="com.ebikes.organizations" strategyOnMismatch="allowed">
+
+    <!--
+      Intentionally lean policy.
+
+      Goal:
+      - enforce only high-value layering boundaries
+      - avoid default-deny breakage across a single Spring Boot service
+      - let Spotless / ImportOrder handle formatting concerns separately
+    -->
+
+    <!-- ========================================================= -->
+    <!-- CONTROLLERS                                                -->
+    <!-- ========================================================= -->
+
+    <subpackage name="controllers" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.database.entities"/>
+        <disallow pkg="com.ebikes.organizations.database.entities.bases"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+    </subpackage>
+
+    <!-- ========================================================= -->
+    <!-- DATABASE                                                   -->
+    <!-- ========================================================= -->
+
+    <subpackage name="database.repositories" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+        <disallow pkg="com.ebikes.organizations.mappers"/>
+    </subpackage>
+
+    <subpackage name="database.specifications" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+        <disallow pkg="com.ebikes.organizations.mappers"/>
+    </subpackage>
+
+    <subpackage name="database.entities" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+    <subpackage name="database.entities.bases" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+    <!-- ========================================================= -->
+    <!-- DOMAIN                                                     -->
+    <!-- ========================================================= -->
+
+    <subpackage name="domain" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+        <disallow pkg="com.ebikes.organizations.configurations"/>
+        <disallow pkg="org.springframework"/>
+    </subpackage>
+
+    <!-- ========================================================= -->
+    <!-- ADAPTERS                                                   -->
+    <!-- ========================================================= -->
+
+    <subpackage name="adapters" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+    <!-- ========================================================= -->
+    <!-- LISTENERS / PUBLISHERS                                     -->
+    <!-- ========================================================= -->
+
+    <subpackage name="listeners" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.database.entities"/>
+        <disallow pkg="com.ebikes.organizations.database.entities.bases"/>
+        <disallow pkg="com.ebikes.organizations.services.pricing"/>
+        <disallow pkg="com.ebikes.organizations.services.organizations"/>
+        <disallow pkg="com.ebikes.organizations.mappers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+    </subpackage>
+
+    <subpackage name="publishers" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.database.entities"/>
+        <disallow pkg="com.ebikes.organizations.database.entities.bases"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.mappers"/>
+        <disallow pkg="com.ebikes.organizations.adapters"/>
+    </subpackage>
+
+    <!-- ========================================================= -->
+    <!-- SUPPORT                                                    -->
+    <!-- ========================================================= -->
+
+    <subpackage name="support.context" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+    <subpackage name="support.references" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+        <disallow pkg="org.springframework"/>
+    </subpackage>
+
+    <subpackage name="support.database" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+    <subpackage name="support.security" strategyOnMismatch="allowed">
+        <disallow pkg="com.ebikes.organizations.controllers"/>
+        <disallow pkg="com.ebikes.organizations.database.repositories"/>
+        <disallow pkg="com.ebikes.organizations.database.specifications"/>
+        <disallow pkg="com.ebikes.organizations.services"/>
+        <disallow pkg="com.ebikes.organizations.listeners"/>
+        <disallow pkg="com.ebikes.organizations.publishers"/>
+    </subpackage>
+
+</import-control>
