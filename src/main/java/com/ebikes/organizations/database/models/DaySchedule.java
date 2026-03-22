@@ -2,10 +2,7 @@ package com.ebikes.organizations.database.models;
 
 import java.io.Serializable;
 import java.time.DayOfWeek;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
@@ -24,8 +21,6 @@ public record DaySchedule(
         String opens)
     implements Serializable {
 
-  private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
-
   @JsonCreator
   public DaySchedule(
       @JsonProperty("closes") String closes,
@@ -36,10 +31,4 @@ public record DaySchedule(
     this.opens = opens;
   }
 
-  @AssertTrue(message = "Opening time must be before closing time") private boolean isScheduleValid() {
-    if (opens == null || closes == null) {
-      return true;
-    }
-    return LocalTime.parse(opens, TIME_FORMAT).isBefore(LocalTime.parse(closes, TIME_FORMAT));
-  }
 }

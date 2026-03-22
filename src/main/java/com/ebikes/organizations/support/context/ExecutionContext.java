@@ -25,11 +25,6 @@ public final class ExecutionContext {
     return data != null ? data.activeOrganization() : null;
   }
 
-  public static String getActiveBranch() {
-    ContextData data = context.get();
-    return data != null ? data.activeBranch() : null;
-  }
-
   public static Set<String> getRoles() {
     ContextData data = context.get();
     return data != null ? data.roles() : Collections.emptySet();
@@ -42,10 +37,6 @@ public final class ExecutionContext {
           "getUserId() called with no execution context on current thread");
     }
     return data.userId();
-  }
-
-  public static void restore(ContextData data) {
-    context.set(data);
   }
 
   public static void set(
@@ -75,10 +66,6 @@ public final class ExecutionContext {
             Collections.emptySet(),
             Collections.emptySet(),
             ApplicationConstants.SYSTEM_ID));
-  }
-
-  public static ContextData snapshot() {
-    return context.get();
   }
 
   public record ContextData(

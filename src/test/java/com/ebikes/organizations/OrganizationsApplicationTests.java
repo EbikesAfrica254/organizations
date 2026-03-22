@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Organization Application Tests")
 class OrganizationsApplicationTests {
 
-    @Test
-    @SuppressWarnings("java:S2699")
-    void contextLoads() {
-        // Assertions will be added once test infrastructure (Redis, Kafka, database) is configured.
-    }
+  @Test
+  @SuppressWarnings("java:S2699")
+  void contextLoads() {
+    // Assertions will be added once test infrastructure (Redis, Kafka, database) is configured.
+  }
 }

@@ -32,7 +32,6 @@ public class EventConstants {
         throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
       }
 
-      public static final String REPLACED = EventSource.HOST_SERVICE + ".document.replaced";
       public static final String UPLOADED = EventSource.HOST_SERVICE + ".document.uploaded";
     }
 
@@ -46,7 +45,6 @@ public class EventConstants {
       public static final String DEACTIVATED =
           EventSource.HOST_SERVICE + ".organization.deactivated";
       public static final String REJECTED = EventSource.HOST_SERVICE + ".organization.rejected";
-      public static final String UPDATED = EventSource.HOST_SERVICE + ".organization.updated";
     }
   }
 
@@ -60,19 +58,6 @@ public class EventConstants {
 
     public static String serviceReference() {
       return ReferenceGenerator.generateServiceReference(HOST_SERVICE);
-    }
-  }
-
-  public static final class InboxSourceContext {
-
-    private InboxSourceContext() {
-      throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-    }
-
-    private static final String DELIMITER = ":";
-
-    public static String getSourceContext(String serviceReference) {
-      return serviceReference.split(DELIMITER)[0];
     }
   }
 
@@ -114,10 +99,6 @@ public class EventConstants {
 
     public static String audit(String domain) {
       return domain + ".audit";
-    }
-
-    public static String makerCheckerDecision(String entityType, String outcome) {
-      return "maker-checker." + entityType.toLowerCase() + "." + outcome.toLowerCase();
     }
 
     public static String makerCheckerRequest(String sourceService, String entityType) {

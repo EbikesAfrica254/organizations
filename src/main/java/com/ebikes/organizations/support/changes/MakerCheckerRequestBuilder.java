@@ -28,9 +28,12 @@ public class MakerCheckerRequestBuilder {
         ENTITY_TYPE_DOCUMENT,
         makerId,
         Map.of(
-            "documentType", oldDocument.getDocumentType(),
-            "oldDocumentId", oldDocument.getId(),
-            OPERATION, "REPLACE_DOCUMENT"),
+            "documentType",
+            oldDocument.getDocumentType(),
+            "oldDocumentId",
+            oldDocument.getId(),
+            OPERATION,
+            "REPLACE_DOCUMENT"),
         oldDocument.getOrganization().getId().toString(),
         null,
         EventSource.serviceReference());

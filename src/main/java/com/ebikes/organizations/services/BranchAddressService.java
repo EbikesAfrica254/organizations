@@ -29,16 +29,15 @@ public class BranchAddressService {
     log.info("Creating branch address: branchId={}", branch.getId());
 
     BranchAddress branchAddress =
-        BranchAddress.builder()
-            .addressTag(AddressTag.BRANCH_LOCATION)
-            .branch(branch)
-            .city(request.city())
-            .country(request.country())
-            .latitude(request.latitude())
-            .longitude(request.longitude())
-            .postalCode(request.postalCode())
-            .streetAddress(request.streetAddress())
-            .build();
+        new BranchAddress(
+            AddressTag.BRANCH_LOCATION,
+            branch,
+            request.city(),
+            request.country(),
+            request.latitude(),
+            request.longitude(),
+            request.postalCode(),
+            request.streetAddress());
 
     BranchAddress saved = branchAddressRepository.save(branchAddress);
 
@@ -82,13 +81,13 @@ public class BranchAddressService {
     log.info("Branch address updated: branchAddressId={}", saved.getId());
   }
 
-  private BranchAddress requireByBranchId(UUID branchId){
+  private BranchAddress requireByBranchId(UUID branchId) {
     return branchAddressRepository
-            .findByBranchIdAndAddressTag(branchId, AddressTag.BRANCH_LOCATION)
-            .orElseThrow(
-                    () ->
-                            new ResourceNotFoundException(
-                                    ResponseCode.RESOURCE_NOT_FOUND,
-                                    "Branch address not found for branch: " + branchId));
+        .findByBranchIdAndAddressTag(branchId, AddressTag.BRANCH_LOCATION)
+        .orElseThrow(
+            () ->
+                new ResourceNotFoundException(
+                    ResponseCode.RESOURCE_NOT_FOUND,
+                    "Branch address not found for branch: " + branchId));
   }
 }

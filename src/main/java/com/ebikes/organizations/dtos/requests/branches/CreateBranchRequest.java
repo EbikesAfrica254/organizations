@@ -28,7 +28,7 @@ public record CreateBranchRequest(
   public CreateBranchRequest {
     operatingHours =
         operatingHours != null
-            ? Collections.unmodifiableList(List.copyOf(operatingHours))
+            ? List.copyOf(operatingHours)
             : List.of();
   }
 

@@ -17,22 +17,19 @@ public final class ReferenceGenerator {
   }
 
   public static String generateErrorReference() {
-    return generate(
-        ApplicationConstants.ERROR_REFERENCE_PREFIX,
-        null,
-        ApplicationConstants.ERROR_REFERENCE_ID_LENGTH);
+    return generate();
   }
 
   public static String generateServiceReference(String serviceName) {
     return serviceName + ":" + UUID.randomUUID();
   }
 
-  private static String generate(String prefix, String qualifier, int length) {
+  private static String generate() {
     String datePart = LocalDate.now().format(DATE_FORMATTER);
-    String randomPart = RandomStringUtils.insecure().nextAlphanumeric(length).toUpperCase();
-
-    return qualifier != null
-        ? prefix + "-" + qualifier + "-" + datePart + "-" + randomPart
-        : prefix + "-" + datePart + "-" + randomPart;
+    String randomPart =
+        RandomStringUtils.insecure()
+            .nextAlphanumeric(ApplicationConstants.ERROR_REFERENCE_ID_LENGTH)
+            .toUpperCase();
+    return ApplicationConstants.ERROR_REFERENCE_PREFIX + "-" + datePart + "-" + randomPart;
   }
 }

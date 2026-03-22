@@ -1,6 +1,5 @@
 package com.ebikes.organizations.services;
 
-import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
 
@@ -13,17 +12,12 @@ import com.ebikes.organizations.dtos.internal.UploadUrlData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @RequiredArgsConstructor
 @Service
@@ -34,52 +28,49 @@ public class StorageService {
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
 
-  public InputStream download(String key) {
-    String bucketName = awsProperties.getS3().getBucketName();
-    log.info("Downloading file: bucket={}, key={}", bucketName, key);
-    GetObjectRequest getRequest = GetObjectRequest.builder().bucket(bucketName).key(key).build();
-    return s3Client.getObject(getRequest);
-  }
-
   public String generateDownloadUrl(String key, String fileName, Duration ttl) {
     String disposition = "attachment; filename=\"" + sanitizeFilename(fileName) + "\"";
     return buildPresignedGetUrl(key, ttl, disposition);
   }
 
+  public String generatePreviewUrl(String key, Duration ttl) {
+    return buildPresignedGetUrl(key, ttl, "inline");
+  }
+
   public UploadUrlData generateUploadUrl(
-          String key, String contentType, Long contentLength, Map<String, String> metadata) {
+      String key, String contentType, Long contentLength, Map<String, String> metadata) {
 
     String bucketName = awsProperties.getS3().getBucketName();
     Integer expiryMinutes = awsProperties.getS3().getPresignedUrlExpiryMinutes();
 
     log.info(
-            "Generating upload URL: bucket={}, key={}, contentType={}, expiryMinutes={}",
-            bucketName,
-            key,
-            contentType,
-            expiryMinutes);
+        "Generating upload URL: bucket={}, key={}, contentType={}, expiryMinutes={}",
+        bucketName,
+        key,
+        contentType,
+        expiryMinutes);
 
     PresignedPutObjectRequest presignedRequest =
-            s3Presigner.presignPutObject(
-                    p ->
-                            p.signatureDuration(Duration.ofMinutes(expiryMinutes))
-                                    .putObjectRequest(
-                                            r -> {
-                                              r.bucket(bucketName)
-                                                      .key(key)
-                                                      .contentType(contentType)
-                                                      .contentLength(contentLength);
-                                              if (metadata != null && !metadata.isEmpty()) {
-                                                r.metadata(metadata);
-                                              }
-                                            }));
+        s3Presigner.presignPutObject(
+            p ->
+                p.signatureDuration(Duration.ofMinutes(expiryMinutes))
+                    .putObjectRequest(
+                        r -> {
+                          r.bucket(bucketName)
+                              .key(key)
+                              .contentType(contentType)
+                              .contentLength(contentLength);
+                          if (metadata != null && !metadata.isEmpty()) {
+                            r.metadata(metadata);
+                          }
+                        }));
 
     log.debug("Upload URL generated: key={}, expiresAt={}", key, presignedRequest.expiration());
 
     return new UploadUrlData(
-            presignedRequest.url().toString(),
-            presignedRequest.signedHeaders(),
-            presignedRequest.expiration());
+        presignedRequest.url().toString(),
+        presignedRequest.signedHeaders(),
+        presignedRequest.expiration());
   }
 
   public StoredFileMetadata getStoredFileMetadata(String key) {
@@ -89,18 +80,18 @@ public class StorageService {
 
     try {
       HeadObjectRequest headRequest =
-              HeadObjectRequest.builder().bucket(bucketName).key(key).build();
+          HeadObjectRequest.builder().bucket(bucketName).key(key).build();
 
       HeadObjectResponse response = s3Client.headObject(headRequest);
 
       log.debug(
-              "File metadata retrieved: key={}, size={}, contentType={}",
-              key,
-              response.contentLength(),
-              response.contentType());
+          "File metadata retrieved: key={}, size={}, contentType={}",
+          key,
+          response.contentLength(),
+          response.contentType());
 
       return new StoredFileMetadata(
-              response.contentLength(), response.contentType(), response.lastModified(), true);
+          response.contentLength(), response.contentType(), response.lastModified(), true);
 
     } catch (NoSuchKeyException e) {
       log.warn("File not found: bucket={}, key={}", bucketName, key);
@@ -119,24 +110,24 @@ public class StorageService {
     String bucketName = awsProperties.getS3().getBucketName();
 
     log.info(
-            "Generating presigned GET URL: bucket={}, key={}, ttl={}m, disposition={}",
-            bucketName,
-            key,
-            ttl.toMinutes(),
-            contentDisposition);
+        "Generating presigned GET URL: bucket={}, key={}, ttl={}m, disposition={}",
+        bucketName,
+        key,
+        ttl.toMinutes(),
+        contentDisposition);
 
     PresignedGetObjectRequest presignedRequest =
-            s3Presigner.presignGetObject(
-                    p ->
-                            p.signatureDuration(ttl)
-                                    .getObjectRequest(
-                                            r ->
-                                                    r.bucket(bucketName)
-                                                            .key(key)
-                                                            .responseContentDisposition(contentDisposition)));
+        s3Presigner.presignGetObject(
+            p ->
+                p.signatureDuration(ttl)
+                    .getObjectRequest(
+                        r ->
+                            r.bucket(bucketName)
+                                .key(key)
+                                .responseContentDisposition(contentDisposition)));
 
     log.debug(
-            "Presigned GET URL generated: key={}, expiresAt={}", key, presignedRequest.expiration());
+        "Presigned GET URL generated: key={}, expiresAt={}", key, presignedRequest.expiration());
 
     return presignedRequest.url().toString();
   }

@@ -118,15 +118,6 @@ public class Document extends AuditableEntity {
     this.replacesDocument = oldDocument;
   }
 
-  public void expire() {
-    if (this.status != DocumentStatus.ACTIVE) {
-      throw new BusinessRuleException(
-          ResponseCode.INVALID_STATE,
-          "Only ACTIVE documents can be expired. Current status: " + this.status);
-    }
-    this.status = DocumentStatus.EXPIRED;
-  }
-
   public void markReplaced() {
     if (this.status != DocumentStatus.ACTIVE && this.status != DocumentStatus.EXPIRED) {
       throw new BusinessRuleException(

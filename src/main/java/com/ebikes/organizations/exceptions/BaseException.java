@@ -17,9 +17,4 @@ public abstract class BaseException extends RuntimeException {
     super(developerMessage);
     this.responseCode = responseCode;
   }
-
-  protected BaseException(ResponseCode responseCode, String developerMessage, Throwable cause) {
-    super(developerMessage, cause);
-    this.responseCode = responseCode;
-  }
 }
