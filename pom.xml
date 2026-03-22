@@ -188,13 +188,6 @@
     <!-- CODE GENERATION AND UTILITIES                -->
     <!-- ============================================ -->
 
-    <!-- Apache Commons lang3 for utility methods -->
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>${commons-lang3.version}</version>
-    </dependency>
-
     <!-- lombok for reducing boilerplate code (getters, setters, constructors) -->
     <dependency>
       <groupId>org.projectlombok</groupId>
