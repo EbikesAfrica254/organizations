@@ -1,0 +1,191 @@
+name: Publish Staging
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+concurrency:
+  group: publish-staging-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  publish-staging:
+    name: publish-staging
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'staging' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    environment:
+      name: staging
+
+    env:
+      IMAGE_REPOSITORY: ebikes/organizations
+
+    steps:
+      - name: Derive image coordinates
+        id: image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          FULL_SHA="${{ github.event.workflow_run.head_sha }}"
+          SHORT_SHA="${FULL_SHA:0:12}"
+          BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          echo "full_sha=$FULL_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Download Docker build context artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: docker-build-context-${{ github.event.workflow_run.head_sha }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: image-context/
+
+      - name: Validate Docker build context
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          test -d image-context
+          test -f image-context/Dockerfile
+          test -d image-context/application
+          test -d image-context/dependencies
+          test -d image-context/spring-boot-loader
+
+          if find image-context -type l | grep -q .; then
+            echo "Symlinks are not allowed in the Docker build context"
+            find image-context -type l -print
+            exit 1
+          fi
+
+          if find image-context -mindepth 1 -maxdepth 3 \
+            ! -path 'image-context/Dockerfile' \
+            ! -path 'image-context/application' \
+            ! -path 'image-context/application/*' \
+            ! -path 'image-context/dependencies' \
+            ! -path 'image-context/dependencies/*' \
+            ! -path 'image-context/spring-boot-loader' \
+            ! -path 'image-context/spring-boot-loader/*' \
+            ! -path 'image-context/snapshot-dependencies' \
+            ! -path 'image-context/snapshot-dependencies/*' \
+            | grep -q .
+          then
+            echo "Unexpected files found in Docker build context"
+            find image-context -mindepth 1 -maxdepth 3 | sort
+            exit 1
+          fi
+
+          find image-context -maxdepth 2 | sort
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@006813a119ae0fdeb70ae00f16cda21ee6f2ff3d
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Build and push staging image
+        id: build
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
+        with:
+          context: ./image-context
+          file: ./image-context/Dockerfile
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:staging
+          build-args: |
+            VERSION=staging
+            BUILD_DATE=${{ steps.image.outputs.build_date }}
+            VCS_REF=${{ steps.image.outputs.full_sha }}
+          labels: |
+            org.opencontainers.image.title=eBikes Africa organizations service
+            org.opencontainers.image.version=staging
+            org.opencontainers.image.created=${{ steps.image.outputs.build_date }}
+            org.opencontainers.image.revision=${{ steps.image.outputs.full_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.ref.name=staging
+          cache-from: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache-staging
+          cache-to: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache-staging,mode=max
+
+      - name: Trigger organizations deployment via SSM
+        id: deploy
+        shell: bash
+        env:
+          DEPLOYMENT_REFERENCE: ${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}
+          INSTANCE_ID: ${{ vars.DEPLOY_INSTANCE_ID }}
+          SHORT_SHA: ${{ steps.image.outputs.short_sha }}
+        run: |
+          set -Eeuo pipefail
+
+          test -n "${INSTANCE_ID}"
+          test -n "${DEPLOYMENT_REFERENCE}"
+
+          COMMAND_ID="$(
+            aws ssm send-command \
+              --region "${{ vars.AWS_REGION }}" \
+              --instance-ids "${INSTANCE_ID}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy organizations sha-${SHORT_SHA}" \
+              --parameters commands="/usr/local/bin/deploy-application.sh deploy organizations ${DEPLOYMENT_REFERENCE}" \
+              --query 'Command.CommandId' \
+              --output text
+          )"
+
+          echo "command_id=${COMMAND_ID}" >> "$GITHUB_OUTPUT"
+
+          aws ssm wait command-executed \
+            --region "${{ vars.AWS_REGION }}" \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${INSTANCE_ID}"
+
+          STATUS="$(
+            aws ssm get-command-invocation \
+              --region "${{ vars.AWS_REGION }}" \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${INSTANCE_ID}" \
+              --query 'Status' \
+              --output text
+          )"
+
+          echo "SSM command status: ${STATUS}"
+          test "${STATUS}" = "Success"
+
+      - name: Publish summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Staging Publish Summary"
+            echo
+            echo "- Branch: staging"
+            echo "- Commit: \`${{ steps.image.outputs.full_sha }}\`"
+            echo "- Mutable tag: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:staging\`"
+            echo "- Immutable tag: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:${{ steps.image.outputs.sha_tag }}\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Deployment reference: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}\`"
+            echo "- SSM command id: \`${{ steps.deploy.outputs.command_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,218 @@
+name: Release Production
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+concurrency:
+  group: release-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-production:
+    name: release-production
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    environment:
+      name: production
+
+    env:
+      IMAGE_REPOSITORY: ebikes/organizations
+
+    steps:
+      - name: Checkout Dockerfile
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: |
+            Dockerfile
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Derive image coordinates
+        id: image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VERSION="${{ github.event.release.tag_name }}"
+          FULL_SHA="${{ github.sha }}"
+          SHORT_SHA="${FULL_SHA:0:12}"
+          BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$FULL_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Find CI run for release SHA
+        id: ci-run
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              head_sha: context.sha,
+              status: 'success',
+              per_page: 1
+            });
+
+            if (runs.data.total_count === 0) {
+              core.setFailed(`No successful CI run found for SHA: ${context.sha}`);
+              return;
+            }
+
+            core.setOutput('run_id', runs.data.workflow_runs[0].id.toString());
+
+      - name: Download JAR layers
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: jar-layers-${{ github.sha }}
+          run-id: ${{ steps.ci-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: extracted/
+
+      - name: Prepare Docker build context
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          rm -rf image-context
+          mkdir -p image-context
+
+          cp Dockerfile image-context/
+
+          if [ -d extracted/application ] && [ -d extracted/dependencies ] && [ -d extracted/spring-boot-loader ]; then
+            cp -R extracted/application image-context/
+            cp -R extracted/dependencies image-context/
+            cp -R extracted/spring-boot-loader image-context/
+            if find extracted -maxdepth 1 -type d -name 'snapshot-dependencies*' | grep -q .; then
+              find extracted -maxdepth 1 -type d -name 'snapshot-dependencies*' -exec cp -R {} image-context/ \;
+            fi
+          else
+            LAYER_ROOT="$(find extracted -mindepth 1 -maxdepth 2 -type d -name application | head -n1 | xargs -r dirname)"
+            if [ -z "${LAYER_ROOT:-}" ]; then
+              echo "Could not locate Spring Boot layer directories in extracted artifact"
+              find extracted -maxdepth 5 | sort
+              exit 1
+            fi
+
+            cp -R "$LAYER_ROOT/application" image-context/
+            cp -R "$LAYER_ROOT/dependencies" image-context/
+            cp -R "$LAYER_ROOT/spring-boot-loader" image-context/
+            if find "$LAYER_ROOT" -maxdepth 1 -type d -name 'snapshot-dependencies*' | grep -q .; then
+              find "$LAYER_ROOT" -maxdepth 1 -type d -name 'snapshot-dependencies*' -exec cp -R {} image-context/ \;
+            fi
+          fi
+
+          find image-context -maxdepth 2 -type d | sort
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@006813a119ae0fdeb70ae00f16cda21ee6f2ff3d
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          driver-opts: network=host
+
+      - name: Build and push production image
+        id: build
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
+        with:
+          context: ./image-context
+          file: ./image-context/Dockerfile
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:${{ steps.image.outputs.version }}
+          build-args: |
+            VERSION=${{ steps.image.outputs.version }}
+            BUILD_DATE=${{ steps.image.outputs.build_date }}
+            VCS_REF=${{ steps.image.outputs.full_sha }}
+          labels: |
+            org.opencontainers.image.title=eBikes Africa organizations service
+            org.opencontainers.image.version=${{ steps.image.outputs.version }}
+            org.opencontainers.image.created=${{ steps.image.outputs.build_date }}
+            org.opencontainers.image.revision=${{ steps.image.outputs.full_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.ref.name=${{ steps.image.outputs.version }}
+          cache-from: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache
+          cache-to: type=registry,ref=${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:buildcache,mode=max
+
+      - name: Trigger organizations deployment via SSM
+        id: deploy
+        shell: bash
+        env:
+          DEPLOYMENT_REFERENCE: ${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}
+          INSTANCE_ID: ${{ vars.DEPLOY_INSTANCE_ID }}
+          SHORT_SHA: ${{ steps.image.outputs.short_sha }}
+        run: |
+          set -Eeuo pipefail
+
+          test -n "${INSTANCE_ID}"
+          test -n "${DEPLOYMENT_REFERENCE}"
+
+          COMMAND_ID="$(
+            aws ssm send-command \
+              --region "${{ vars.AWS_REGION }}" \
+              --instance-ids "${INSTANCE_ID}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy organizations sha-${SHORT_SHA}" \
+              --parameters commands="/usr/local/bin/deploy-application.sh deploy organizations ${DEPLOYMENT_REFERENCE}" \
+              --query 'Command.CommandId' \
+              --output text
+          )"
+
+          echo "command_id=${COMMAND_ID}" >> "$GITHUB_OUTPUT"
+
+          aws ssm wait command-executed \
+            --region "${{ vars.AWS_REGION }}" \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${INSTANCE_ID}"
+
+          STATUS="$(
+            aws ssm get-command-invocation \
+              --region "${{ vars.AWS_REGION }}" \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${INSTANCE_ID}" \
+              --query 'Status' \
+              --output text
+          )"
+
+          echo "SSM command status: ${STATUS}"
+          test "${STATUS}" = "Success"
+
+      - name: Publish summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Production Release Summary"
+            echo
+            echo "- Version: \`${{ steps.image.outputs.version }}\`"
+            echo "- Commit: \`${{ steps.image.outputs.full_sha }}\`"
+            echo "- Release tag: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:${{ steps.image.outputs.version }}\`"
+            echo "- Immutable SHA tag: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:${{ steps.image.outputs.sha_tag }}\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Deployment reference: \`${{ vars.ECR_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}\`"
+            echo "- SSM command id: \`${{ steps.deploy.outputs.command_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

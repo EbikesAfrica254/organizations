@@ -30,5 +30,4 @@ public record DaySchedule(
     this.dayOfWeek = dayOfWeek;
     this.opens = opens;
   }
-
 }

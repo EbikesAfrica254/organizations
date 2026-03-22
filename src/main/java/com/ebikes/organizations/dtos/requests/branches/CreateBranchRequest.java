@@ -26,10 +26,7 @@ public record CreateBranchRequest(
     implements Serializable {
 
   public CreateBranchRequest {
-    operatingHours =
-        operatingHours != null
-            ? List.copyOf(operatingHours)
-            : List.of();
+    operatingHours = operatingHours != null ? List.copyOf(operatingHours) : List.of();
   }
 
   @Override

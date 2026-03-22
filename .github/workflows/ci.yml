@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - dev
+      - staging
+      - main
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: quality-gate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build, test and analyse
+        run: |
+          ./mvnw verify -B \
+            org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Set up Python for Semgrep
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: '3.13'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: semgrep --config auto --error
+
+      - name: Extract JAR layers
+        if: github.event_name == 'push'
+        run: |
+          set -Eeuo pipefail
+          java -Djarmode=layertools -jar target/*.jar extract --destination extracted/
+
+      - name: Prepare Docker build context artifact
+        if: github.event_name == 'push'
+        run: |
+          set -Eeuo pipefail
+
+          rm -rf docker-build-context
+          mkdir -p docker-build-context
+
+          test -f Dockerfile
+          test -d extracted/application
+          test -d extracted/dependencies
+          test -d extracted/spring-boot-loader
+
+          cp Dockerfile docker-build-context/
+          cp -R extracted/application docker-build-context/
+          cp -R extracted/dependencies docker-build-context/
+          cp -R extracted/spring-boot-loader docker-build-context/
+
+          if [ -d extracted/snapshot-dependencies ]; then
+            cp -R extracted/snapshot-dependencies docker-build-context/
+          fi
+
+          find docker-build-context -maxdepth 2 | sort
+
+      - name: Upload Docker build context
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: docker-build-context-${{ github.sha }}
+          path: docker-build-context/
+          retention-days: 1
+          if-no-files-found: error
+          include-hidden-files: false
