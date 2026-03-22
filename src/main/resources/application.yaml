@@ -15,7 +15,7 @@ spring:
       bindings:
         incomingEventConsumer-in-0:
           destination: ebikes.domain-events
-          group: ${RABBITMQ_CONSUMER_GROUP}
+          group: ebikes.organizations.incoming
         eventPublisher-out-0:
           destination: ebikes.domain-events
       rabbit:
@@ -33,11 +33,10 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_MAX}
-      minimum-idle: ${DB_POOL_MIN_IDLE}
-    password: ${DATABASE_PASSWORD}
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USER}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
 
   jpa:
     hibernate:
@@ -46,28 +45,27 @@ spring:
     properties:
       hibernate:
         default_schema: organizations
-        format_sql: ${HIBERNATE_FORMAT_SQL}
-        show_sql: ${HIBERNATE_SHOW_SQL}
+        format_sql: false
+        show_sql: false
 
   liquibase:
     change-log: classpath:database/changelog/changelog-main.yaml
-    enabled: ${SPRING_LIQUIBASE_ENABLED}
+    enabled: true
     liquibase-schema: organizations
     parameters:
       searchPath: classpath:database/changelog
 
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    password: ${RABBITMQ_PASSWORD}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
 
   web:
     resources:
@@ -112,7 +110,7 @@ logging:
 management:
   endpoint:
     health:
-      show-details: ${ACTUATOR_HEALTH_DETAILS:always}
+      show-details: never
   endpoints:
     web:
       exposure:
