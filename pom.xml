@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.4</version>
+    <relativePath />
+  </parent>
+
+  <!-- project coordinates -->
+  <groupId>com.ebikes.organizations</groupId>
+  <artifactId>organizations</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+
+  <!-- project metadata -->
+  <name>ebikes-organizations</name>
+  <description>Organization service</description>
+  <url>https://github.com/EbikesAfrica254/organizations</url>
+
+  <!-- build properties for consistent versions across the project -->
+  <properties>
+    <!-- java version and encoding -->
+    <java.version>21</java.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- dependency versions -->
+    <aws-sdk.version>2.42.15</aws-sdk.version>
+    <checkstyle.version>13.3.0</checkstyle.version>
+    <commons-csv.version>1.14.1</commons-csv.version>
+    <google-java-format.version>1.35.0</google-java-format.version>
+    <jackson-core.version>3.1.0</jackson-core.version>
+    <jacoco.version>0.8.14</jacoco.version>
+    <javers.version>7.10.0</javers.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
+    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+    <netty.version>4.2.10.Final</netty.version>
+    <spotless.plugin.version>3.3.0</spotless.plugin.version>
+    <spotbugs.plugin.version>4.9.8.2</spotbugs.plugin.version>
+    <spring-cloud.version>2025.1.1</spring-cloud.version>
+
+    <!-- skip flags for build phases -->
+    <skipFormatting>false</skipFormatting>
+    <skipSpotbugs>false</skipSpotbugs>
+    <skipTests>false</skipTests>
+  </properties>
+
+  <!-- version management for dependencies used across multiple modules -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- spring cloud dependencies bom for centralized cloud dependency versions -->
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Netty dependency bom for centralized netty versions -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- aws sdk v2 bom for centralized aws service versions -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Address CWE-770 CVSS 8.7 SNYK-JAVA-TOOLSJACKSONCORE-15365915 -->
+      <dependency>
+        <groupId>tools.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson-core.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+
+    <!-- ============================================ -->
+    <!-- SPRING BOOT STARTERS - CORE INFRASTRUCTURE   -->
+    <!-- ============================================ -->
+
+    <!-- actuator for health checks, metrics, and operational endpoints -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <!-- configuration processor for generating metadata for custom config properties -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- data jpa for database access and orm via hibernate -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- security for authentication and authorization -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- validation for request dto validation using Jakarta validation api -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- web for rest api controllers and embedded tomcat -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- SPRING CLOUD - DISTRIBUTED SYSTEMS SUPPORT   -->
+    <!-- ============================================ -->
+
+    <!-- stream rabbit for async messaging via rabbitmq streams (audit events, organizations) -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- SPRING SECURITY - OAUTH2/JWT SUPPORT         -->
+    <!-- ============================================ -->
+
+    <!-- oauth2 jose for jwt security parsing and validation -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+
+    <!-- oauth2 resource server for protecting rest endpoints with jwt security -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- DATABASE - DRIVERS AND MIGRATION             -->
+    <!-- ============================================ -->
+
+    <!-- liquibase for database schema versioning and migrations -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-liquibase</artifactId>
+    </dependency>
+
+    <!-- postgresql jdbc driver for production database connectivity -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- AWS SDK V2 - CLOUD SERVICES INTEGRATION      -->
+    <!-- ============================================ -->
+
+    <!-- aws s3 for document storage via amazon simple storage service -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- CODE GENERATION AND UTILITIES                -->
+    <!-- ============================================ -->
+
+    <!-- Apache Commons lang3 for utility methods -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
+    </dependency>
+
+    <!-- lombok for reducing boilerplate code (getters, setters, constructors) -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- mapstruct for type-safe bean mapping between dtos and entities -->
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
+
+    <!-- javers object auditing and diff framework  -->
+    <dependency>
+      <groupId>org.javers</groupId>
+      <artifactId>javers-spring-boot-starter-sql</artifactId>
+      <version>${javers.version}</version>
+    </dependency>
+
+    <!-- ============================================ -->
+    <!-- TEST DEPENDENCIES                            -->
+    <!-- ============================================ -->
+
+    <!-- spring boot test starter includes junit 5, mockito, assertj, hamcrest -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- maven compiler plugin with annotation processors for lombok and mapstruct -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <!-- lombok must be processed first, then mapstruct can use lombok-generated code -->
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+              <version>${mapstruct.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <!-- spring boot maven plugin for running and packaging -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <!-- enable layered jar for optimised docker layer caching -->
+          <layers>
+            <enabled>true</enabled>
+          </layers>
+          <excludes>
+            <!-- exclude lombok from the final jar since it's compile-time only -->
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- jacoco for coverage reports consumed later by sonarcloud -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>jacoco-prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <formats>
+                <format>XML</format>
+                <format>HTML</format>
+              </formats>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- spotbugs for real jvm defect detection -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs.plugin.version}</version>
+        <configuration>
+          <skip>${skipSpotbugs}</skip>
+          <effort>Max</effort>
+          <threshold>Medium</threshold>
+          <failOnError>true</failOnError>
+          <xmlOutput>true</xmlOutput>
+          <excludeFilterFile>spotbugs/exclude-filter.xml</excludeFilterFile>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotbugs-verify</id>
+            <goals>
+              <goal>spotbugs</goal>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- checkstyle for conventions and architectural guardrails -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
+        <configuration>
+          <configLocation>checkstyle/checkstyle.xml</configLocation>
+          <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
+          <failOnViolation>true</failOnViolation>
+          <outputFile>${project.build.directory}/checkstyle-result.xml</outputFile>
+          <outputFileFormat>xml</outputFileFormat>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>checkstyle-verify</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- spotless for code formatting using Google java format -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.plugin.version}</version>
+        <configuration>
+          <formats>
+            <format>
+              <includes>
+                <include>*.md</include>
+                <include>.gitignore</include>
+                <include>.gitattributes</include>
+              </includes>
+              <trimTrailingWhitespace />
+              <endWithNewline />
+            </format>
+          </formats>
+
+          <java>
+            <includes>
+              <include>src/main/java/**/*.java</include>
+              <include>src/test/java/**/*.java</include>
+            </includes>
+
+            <googleJavaFormat>
+              <version>${google-java-format.version}</version>
+              <style>GOOGLE</style>
+              <reflowLongStrings>true</reflowLongStrings>
+              <formatJavadoc>false</formatJavadoc>
+            </googleJavaFormat>
+
+            <importOrder>
+              <order>java,javax,jakarta,org,com,</order>
+            </importOrder>
+
+            <removeUnusedImports>
+              <engine>google-java-format</engine>
+            </removeUnusedImports>
+
+            <forbidWildcardImports />
+            <formatAnnotations />
+            <trimTrailingWhitespace />
+            <endWithNewline />
+          </java>
+
+          <pom>
+            <sortPom>
+              <expandEmptyElements>false</expandEmptyElements>
+              <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+            </sortPom>
+          </pom>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
