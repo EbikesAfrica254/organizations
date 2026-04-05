@@ -13,7 +13,7 @@ import com.ebikes.organizations.dtos.requests.filters.OutboxFilter;
 import com.ebikes.organizations.enums.OutboxStatus;
 import com.ebikes.organizations.support.database.FilterUtilities;
 
-public final class OutboxSpecifications {
+public class OutboxSpecifications {
 
   public static final String FIELD_CREATED_AT = "createdAt";
   public static final String FIELD_EVENT_TYPE = "eventType";
@@ -24,9 +24,7 @@ public final class OutboxSpecifications {
   public static final Set<String> ALLOWED_SORT_FIELDS =
       Set.of(FIELD_CREATED_AT, FIELD_EVENT_TYPE, FIELD_RETRY_COUNT, FIELD_STATUS, FIELD_UPDATED_AT);
 
-  private OutboxSpecifications() {
-    // prevent instantiation
-  }
+  private OutboxSpecifications() {}
 
   public static Specification<Outbox> buildSpecification(OutboxFilter filter) {
     return (root, query, criteriaBuilder) -> {
@@ -39,27 +37,6 @@ public final class OutboxSpecifications {
           criteriaBuilder,
           filter.getEventType(),
           hasEventType(filter.getEventType()));
-      FilterUtilities.addIfPresent(
-          predicates,
-          root,
-          query,
-          criteriaBuilder,
-          filter.getStatus(),
-          hasStatus(filter.getStatus()));
-      FilterUtilities.addIfPresent(
-          predicates,
-          root,
-          query,
-          criteriaBuilder,
-          filter.getMinRetryCount(),
-          hasMinRetryCount(filter.getMinRetryCount()));
-      FilterUtilities.addIfPresent(
-          predicates,
-          root,
-          query,
-          criteriaBuilder,
-          filter.getMaxRetryCount(),
-          hasMaxRetryCount(filter.getMaxRetryCount()));
 
       FilterUtilities.addDateRange(
           predicates,
@@ -67,24 +44,38 @@ public final class OutboxSpecifications {
           query,
           criteriaBuilder,
           FIELD_CREATED_AT,
-          filter.getCreatedAtAfter(),
-          filter.getCreatedAtBefore());
+          filter.getCreatedAtFrom(),
+          filter.getCreatedAtTo());
+
       FilterUtilities.addDateRange(
           predicates,
           root,
           query,
           criteriaBuilder,
           FIELD_UPDATED_AT,
-          filter.getUpdatedAtAfter(),
-          filter.getUpdatedAtBefore());
+          filter.getUpdatedAtFrom(),
+          filter.getUpdatedAtTo());
+
+      if (filter.getStatus() != null) {
+        predicates.add(hasStatus(filter.getStatus()).toPredicate(root, query, criteriaBuilder));
+      }
+
+      if (filter.getMinRetryCount() != null) {
+        predicates.add(
+            hasMinRetryCount(filter.getMinRetryCount()).toPredicate(root, query, criteriaBuilder));
+      }
+
+      if (filter.getMaxRetryCount() != null) {
+        predicates.add(
+            hasMaxRetryCount(filter.getMaxRetryCount()).toPredicate(root, query, criteriaBuilder));
+      }
 
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };
   }
 
   public static Specification<Outbox> hasEventType(String eventType) {
-    return (root, query, criteriaBuilder) ->
-        criteriaBuilder.equal(root.get(FIELD_EVENT_TYPE), eventType);
+    return FilterUtilities.likeIgnoreCase(FIELD_EVENT_TYPE, eventType);
   }
 
   public static Specification<Outbox> hasMaxRetryCount(Integer maxRetryCount) {

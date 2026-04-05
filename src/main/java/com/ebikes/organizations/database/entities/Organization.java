@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jakarta.persistence.CascadeType;
@@ -29,21 +30,25 @@ import com.ebikes.organizations.enums.ComplianceStatus;
 import com.ebikes.organizations.enums.OrganizationStatus;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.BusinessRuleException;
+import com.ebikes.organizations.support.audit.Auditable;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @Table(name = "organizations", schema = "organizations")
-public class Organization extends AuditableEntity {
+public class Organization extends AuditableEntity implements Auditable {
 
   @Column(name = "activated_at")
   private OffsetDateTime activatedAt;
 
+  @Builder.Default
   @Column(name = "addresses", nullable = false, columnDefinition = "jsonb")
   @JdbcTypeCode(SqlTypes.JSON)
   private List<Address> addresses = new ArrayList<>();
@@ -51,9 +56,11 @@ public class Organization extends AuditableEntity {
   @Column(name = "approved_at")
   private OffsetDateTime approvedAt;
 
+  @Builder.Default
   @Column(name = "compliance_status", nullable = false)
   @Enumerated(EnumType.STRING)
-  @NotNull private ComplianceStatus complianceStatus;
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @NotNull private ComplianceStatus complianceStatus = ComplianceStatus.NON_COMPLIANT;
 
   @Column(name = "deactivated_at")
   private OffsetDateTime deactivatedAt;
@@ -87,45 +94,21 @@ public class Organization extends AuditableEntity {
 
   @Column(name = "registration_type", nullable = false)
   @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
   @NotNull private BusinessRegistrationType registrationType;
 
   @Column(name = "rejection_reason")
   private String rejectionReason;
 
+  @Builder.Default
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  @NotNull private OrganizationStatus status;
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @NotNull private OrganizationStatus status = OrganizationStatus.PENDING_APPROVAL;
 
   @Column(name = "version", nullable = false)
   @Version
   private int version;
-
-  @Builder
-  public Organization(
-      @NotNull List<Address> addresses,
-      @NotBlank String displayName,
-      @NotBlank String email,
-      LocalDate incorporationDate,
-      String kraPin,
-      @NotBlank String legalName,
-      @NotBlank String ownerId,
-      @NotBlank String phoneNumber,
-      @NotBlank String registrationNumber,
-      @NotNull BusinessRegistrationType registrationType) {
-
-    this.addresses = new ArrayList<>(addresses);
-    this.complianceStatus = ComplianceStatus.COMPLIANT;
-    this.displayName = displayName;
-    this.email = email;
-    this.incorporationDate = incorporationDate;
-    this.kraPin = kraPin;
-    this.legalName = legalName;
-    this.ownerId = ownerId;
-    this.phoneNumber = phoneNumber;
-    this.registrationNumber = registrationNumber;
-    this.registrationType = registrationType;
-    this.status = OrganizationStatus.PENDING_APPROVAL;
-  }
 
   public void approve() {
     if (this.status != OrganizationStatus.PENDING_APPROVAL) {
@@ -164,6 +147,16 @@ public class Organization extends AuditableEntity {
     this.rejectionReason = reason;
   }
 
+  public void updateComplianceStatus(@NotNull ComplianceStatus complianceStatus) {
+    if (complianceStatus == ComplianceStatus.SUSPENDED) {
+      throw new BusinessRuleException(
+          ResponseCode.INVALID_STATE,
+          "Compliance suspension requires explicit admin action and cannot be set"
+              + " programmatically");
+    }
+    this.complianceStatus = complianceStatus;
+  }
+
   public void reject(String reason) {
     if (this.status != OrganizationStatus.PENDING_APPROVAL) {
       throw new BusinessRuleException(
@@ -183,5 +176,15 @@ public class Organization extends AuditableEntity {
     }
     this.status = OrganizationStatus.PENDING_APPROVAL;
     this.rejectionReason = null;
+  }
+
+  @Override
+  public Map<String, String> toAuditMetadata() {
+    return Map.of(
+        "complianceStatus", complianceStatus.name(),
+        "displayName", displayName,
+        "ownerId", ownerId,
+        "registrationType", registrationType.name(),
+        "status", status.name());
   }
 }

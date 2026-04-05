@@ -1,6 +1,5 @@
 package com.ebikes.organizations.database.entities;
 
-import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -10,7 +9,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -25,10 +23,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @Table(name = "outbox", schema = "organizations")
 public class Outbox extends BaseEntity {
 
@@ -37,29 +37,22 @@ public class Outbox extends BaseEntity {
 
   @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
   @JdbcTypeCode(SqlTypes.JSON)
-  @NotNull private Serializable payload;
+  @NotNull private Object payload;
 
+  @Builder.Default
   @Column(name = "retry_count", nullable = false)
   private Integer retryCount = 0;
 
   @Column(name = "routing_key", nullable = false, length = 200)
   @NotNull private String routingKey;
 
+  @Builder.Default
   @Column(name = "status", nullable = false, length = 20)
   @Enumerated(EnumType.STRING)
-  @NotNull private OutboxStatus status;
+  @NotNull private OutboxStatus status = OutboxStatus.PENDING;
 
   @Column(name = "updated_at", columnDefinition = "TIMESTAMPTZ")
   private OffsetDateTime updatedAt;
-
-  @Builder
-  public Outbox(
-      @NotBlank String eventType, @NotNull Serializable payload, @NotNull String routingKey) {
-    this.eventType = eventType;
-    this.payload = payload;
-    this.routingKey = routingKey;
-    this.status = OutboxStatus.PENDING;
-  }
 
   public void markDeadLetter() {
     if (this.status != OutboxStatus.FAILED) {

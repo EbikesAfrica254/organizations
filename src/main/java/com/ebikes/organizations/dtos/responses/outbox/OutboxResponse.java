@@ -1,5 +1,6 @@
 package com.ebikes.organizations.dtos.responses.outbox;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -9,9 +10,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OutboxResponse(
     UUID id,
-    OutboxStatus status,
+    OffsetDateTime createdAt,
     String eventType,
     Integer retryCount,
     String routingKey,
-    OffsetDateTime createdAt,
-    OffsetDateTime updatedAt) {}
+    OutboxStatus status,
+    OffsetDateTime updatedAt)
+    implements Serializable {}

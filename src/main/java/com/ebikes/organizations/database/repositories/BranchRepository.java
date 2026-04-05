@@ -7,12 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.ebikes.organizations.database.entities.Branch;
+import com.ebikes.organizations.dtos.responses.branches.BranchReference;
 import com.ebikes.organizations.enums.BranchStatus;
 
 public interface BranchRepository
     extends JpaRepository<Branch, UUID>, JpaSpecificationExecutor<Branch> {
 
   boolean existsByOrganizationIdAndBranchNameIgnoreCase(UUID organizationId, String branchName);
+
+  List<BranchReference> findByIdInAndOrganizationId(List<UUID> ids, UUID organizationId);
 
   List<Branch> findByOrganizationId(UUID organizationId);
 

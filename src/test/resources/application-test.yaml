@@ -1,0 +1,170 @@
+server:
+  port: 0
+
+spring:
+  # Explicitly exclude all infrastructure autoconfiguration that requires a running
+  # external service. Slice tests (@WebMvcTest, @DataJpaTest) must never attempt
+  # to connect to Redis, RabbitMQ, or any host-local service. Each test layer
+  # provides its own infrastructure via Testcontainers or mocks — never via
+  # fallback to whatever happens to be running on the developer's machine.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  application:
+    name: ebikes-organization
+
+  cloud:
+    function:
+      definition: incomingEventConsumer
+    stream:
+      default-binder: rabbit
+      bindings:
+        incomingEventConsumer-in-0:
+          destination: ebikes.domain-events
+          group: ebikes.organizations.incoming
+          consumer:
+            back-off-initial-interval: 1000
+            back-off-max-interval: 10000
+            back-off-multiplier: 2.0
+            max-attempts: 3
+        eventPublisher-out-0:
+          destination: ebikes.domain-events
+      rabbit:
+        bindings:
+          incomingEventConsumer-in-0:
+            consumer:
+              bindQueue: true
+              declareExchange: true
+              queueNameGroupOnly: true
+          eventPublisher-out-0:
+            producer:
+              declareExchange: true
+              routingKeyExpression: "headers['routingKey']"
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      repositories:
+        enabled: false
+      ssl:
+        enabled: false
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/placeholder
+    username: placeholder
+    password: placeholder
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: organizations
+        format_sql: false
+        show_sql: false
+        type:
+          json_format_mapper: com.ebikes.organizations.configurations.HibernateJsonFormatMapperConfiguration
+
+  liquibase:
+    change-log: classpath:database/changelog/changelog-main.yaml
+    enabled: true
+    liquibase-schema: organizations
+    parameters:
+      searchPath: classpath:database/changelog/
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Placeholder values — never resolved directly from this file.
+          # AbstractControllerTest overrides these via @DynamicPropertySource
+          # once WireMock has started and its port is known.
+          # AbstractIntegrationTest overrides these via @DynamicPropertySource
+          # once the Keycloak Testcontainer has started.
+          # A test that reaches this placeholder and attempts to connect has
+          # a misconfigured base class — fail fast is the correct behaviour.
+          jwk-set-uri: http://localhost:0/realms/ebikes/protocol/openid-connect/certs
+          issuer-uri: http://localhost:0/realms/ebikes
+
+  task:
+    scheduling:
+      pool:
+        size: 2
+
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: PT1H
+
+aws:
+  s3:
+    allowed-content-types:
+      BUSINESS_NAME_CERTIFICATE: application/pdf,image/jpeg,image/png
+      CERTIFICATE_OF_COMPLIANCE: application/pdf
+      CERTIFICATE_OF_INCORPORATION: application/pdf
+      CR12: application/pdf
+      FOREIGN_COMPANY_CERTIFICATE: application/pdf
+      KRA_PIN_CERTIFICATE: application/pdf,image/jpeg,image/png
+      MEMORANDUM_AND_ARTICLES: application/pdf
+      NATIONAL_ID_BACK: image/jpeg,image/png
+      NATIONAL_ID_FRONT: image/jpeg,image/png
+      PARTNERSHIP_DEED: application/pdf
+      PASSPORT: image/jpeg,image/png,application/pdf
+      PUBLIC_HEALTH_CERTIFICATE: application/pdf,image/jpeg,image/png
+      SINGLE_BUSINESS_PERMIT: application/pdf,image/jpeg,image/png
+    bucket-name: s3-test
+    endpoint: http://localhost:4566
+    max-file-size-mb: 10
+    presigned-url-expiry-minutes: 15
+    preview-url-expiry-minutes: 5
+    region: "af-south-1"
+
+javers:
+  auditableAspectEnabled: false
+  mappingStyle: FIELD
+  prettyPrint: false
+  springDataAuditableRepositoryAspectEnabled: false
+  sqlSchemaManagementEnabled: false
+  typeSafeValues: false
+
+logging:
+  level:
+    root: INFO
+    com.ebikes: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoint:
+    health:
+      show-details: ${ACTUATOR_HEALTH_DETAILS:always}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+security:
+  public-endpoints:
+    - /actuator/health
+    - /actuator/prometheus
+  scopes:
+    - email
+    - openid
+    - profile

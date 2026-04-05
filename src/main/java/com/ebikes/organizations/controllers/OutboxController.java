@@ -17,7 +17,7 @@ import com.ebikes.organizations.dtos.requests.filters.OutboxFilter;
 import com.ebikes.organizations.dtos.responses.api.PaginatedResponse;
 import com.ebikes.organizations.dtos.responses.api.SuccessResponse;
 import com.ebikes.organizations.dtos.responses.outbox.OutboxResponse;
-import com.ebikes.organizations.services.OutboxService;
+import com.ebikes.organizations.services.events.OutboxService;
 
 import lombok.RequiredArgsConstructor;
 

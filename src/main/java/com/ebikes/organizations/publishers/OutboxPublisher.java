@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import com.ebikes.organizations.database.entities.Outbox;
 import com.ebikes.organizations.database.repositories.OutboxRepository;
 import com.ebikes.organizations.enums.OutboxStatus;
-import com.ebikes.organizations.services.OutboxEventProcessor;
+import com.ebikes.organizations.services.events.OutboxEventProcessor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

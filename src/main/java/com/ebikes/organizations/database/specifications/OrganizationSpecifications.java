@@ -50,8 +50,8 @@ public final class OrganizationSpecifications {
           query,
           criteriaBuilder,
           FIELD_ACTIVATED_AT,
-          filter.getActivatedAtAfter(),
-          filter.getActivatedAtBefore());
+          filter.getActivatedAtFrom(),
+          filter.getActivatedAtTo());
 
       FilterUtilities.addIfPresent(
           predicates,
@@ -67,8 +67,8 @@ public final class OrganizationSpecifications {
           query,
           criteriaBuilder,
           FIELD_CREATED_AT,
-          filter.getCreatedAtAfter(),
-          filter.getCreatedAtBefore());
+          filter.getCreatedAtFrom(),
+          filter.getCreatedAtTo());
 
       FilterUtilities.addIfPresent(
           predicates,

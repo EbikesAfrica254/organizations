@@ -2,110 +2,73 @@ package com.ebikes.organizations.constants;
 
 import com.ebikes.organizations.support.references.ReferenceGenerator;
 
-import lombok.experimental.UtilityClass;
+public final class EventConstants {
 
-@UtilityClass
-public class EventConstants {
+  private EventConstants() {}
 
-  public static final class EventTypes {
+  public static final class Source {
 
-    private EventTypes() {
-      throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-    }
+    private Source() {}
 
-    public static final class Branches {
+    public static final String ORGANIZATIONS = "organizations";
 
-      private Branches() {
-        throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-      }
-
-      public static final String CREATED = EventSource.HOST_SERVICE + ".branch.created";
-      public static final String DEACTIVATED = EventSource.HOST_SERVICE + ".branch.deactivated";
-      public static final String REINSTATED = EventSource.HOST_SERVICE + ".branch.reinstated";
-      public static final String SUSPENDED = EventSource.HOST_SERVICE + ".branch.suspended";
-      public static final String UPDATED = EventSource.HOST_SERVICE + ".branch.updated";
-    }
-
-    public static final class Documents {
-
-      private Documents() {
-        throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-      }
-
-      public static final String UPLOADED = EventSource.HOST_SERVICE + ".document.uploaded";
-    }
-
-    public static final class Organizations {
-
-      private Organizations() {
-        throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-      }
-
-      public static final String APPROVED = EventSource.HOST_SERVICE + ".organization.approved";
-      public static final String DEACTIVATED =
-          EventSource.HOST_SERVICE + ".organization.deactivated";
-      public static final String REJECTED = EventSource.HOST_SERVICE + ".organization.rejected";
+    public static String serviceReference() {
+      return ReferenceGenerator.generateServiceReference(ORGANIZATIONS);
     }
   }
 
-  public static final class EventSource {
+  public static final class DomainEvents {
 
-    private EventSource() {
-      throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
+    private DomainEvents() {}
+
+    public static final class Branch {
+
+      private Branch() {}
+
+      public static final String CREATED = Source.ORGANIZATIONS + ".branch.created";
+      public static final String DEACTIVATED = Source.ORGANIZATIONS + ".branch.deactivated";
+      public static final String REINSTATED = Source.ORGANIZATIONS + ".branch.reinstated";
+      public static final String SUSPENDED = Source.ORGANIZATIONS + ".branch.suspended";
+      public static final String UPDATED = Source.ORGANIZATIONS + ".branch.updated";
     }
 
-    public static final String HOST_SERVICE = "organizations";
+    public static final class Document {
 
-    public static String serviceReference() {
-      return ReferenceGenerator.generateServiceReference(HOST_SERVICE);
+      private Document() {}
+
+      public static final String ARCHIVED = Source.ORGANIZATIONS + ".document.archived";
+      public static final String EXPIRED = Source.ORGANIZATIONS + ".document.expired";
+      public static final String UPLOADED = Source.ORGANIZATIONS + ".document.uploaded";
     }
+
+    public static final class Organization {
+
+      private Organization() {}
+
+      public static final String APPROVED = Source.ORGANIZATIONS + ".organization.approved";
+      public static final String CREATED = Source.ORGANIZATIONS + ".organization.created";
+      public static final String COMPLIANCE_UPDATED =
+          Source.ORGANIZATIONS + ".organization.compliance-updated";
+      public static final String DEACTIVATED = Source.ORGANIZATIONS + ".organization.deactivated";
+      public static final String REJECTED = Source.ORGANIZATIONS + ".organization.rejected";
+      public static final String UPDATED = Source.ORGANIZATIONS + ".organization.updated";
+    }
+  }
+
+  public static final class ExternalContracts {
+
+    private ExternalContracts() {}
+
+    // inbound — maker-checker decisions arrive as maker-checker.organization.<outcome>
+    public static final String MAKER_CHECKER_ORGANIZATION = "maker-checker.organization";
   }
 
   public static final class MessageHeaders {
 
-    private MessageHeaders() {
-      throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-    }
+    private MessageHeaders() {}
 
     public static final String EVENT_TYPE = "eventType";
     public static final String OUTBOX_ID = "outboxId";
     public static final String ROUTING_KEY = "routingKey";
-  }
-
-  public static final class RoutingKeys {
-
-    private RoutingKeys() {
-      throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
-    }
-
-    // outbound — audit routing keys: <service>.<entity>.audit → matches *.*.audit binding
-    public static final String ORGANIZATIONS_BRANCH_AUDIT =
-        audit(EventSource.HOST_SERVICE + ".branch");
-    public static final String ORGANIZATIONS_DOCUMENT_AUDIT =
-        audit(EventSource.HOST_SERVICE + ".document");
-    public static final String ORGANIZATIONS_ORGANIZATION_AUDIT =
-        audit(EventSource.HOST_SERVICE + ".organization");
-
-    // outbound — maker-checker request routing keys: <service>.<entity>.maker-checker-request
-    //            → matches *.*.maker-checker-request binding
-    public static final String ORGANIZATIONS_DOCUMENT_MAKER_CHECKER_REQUEST =
-        makerCheckerRequest(EventSource.HOST_SERVICE, "document");
-    public static final String ORGANIZATIONS_ORGANIZATION_MAKER_CHECKER_REQUEST =
-        makerCheckerRequest(EventSource.HOST_SERVICE, "organization");
-
-    // inbound — maker-checker decision prefix: matches maker-checker.organization.# binding
-    //           decisions arrive as maker-checker.organization.<outcome>
-    public static final String MAKER_CHECKER_ORGANIZATION = "maker-checker.organization";
-
-    public static String audit(String domain) {
-      return domain + ".audit";
-    }
-
-    public static String makerCheckerRequest(String sourceService, String entityType) {
-      return sourceService
-          + "."
-          + entityType.toLowerCase().replace("_", "-")
-          + ".maker-checker-request";
-    }
   }
 }

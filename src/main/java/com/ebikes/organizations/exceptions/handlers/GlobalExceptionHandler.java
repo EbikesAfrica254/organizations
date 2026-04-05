@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -24,6 +25,21 @@ import lombok.extern.slf4j.Slf4j;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+  @ExceptionHandler(AuthorizationDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
+      AuthorizationDeniedException ex, HttpServletRequest request) {
+
+    log.warn("Access denied: message={}, path={}", ex.getMessage(), request.getRequestURI());
+
+    ErrorResponse error =
+        ErrorResponseBuilder.buildErrorResponse(
+            ResponseCode.FORBIDDEN.getUserMessage(),
+            request.getRequestURI(),
+            ResponseCode.FORBIDDEN);
+
+    return ErrorResponseBuilder.buildResponse(error, ResponseCode.FORBIDDEN.getHttpStatus());
+  }
 
   @ExceptionHandler(BaseException.class)
   public ResponseEntity<ErrorResponse> handleBaseException(

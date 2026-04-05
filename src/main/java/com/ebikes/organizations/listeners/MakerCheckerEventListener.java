@@ -3,10 +3,10 @@ package com.ebikes.organizations.listeners;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ebikes.organizations.constants.EventConstants.RoutingKeys;
+import com.ebikes.organizations.constants.EventConstants.ExternalContracts;
 import com.ebikes.organizations.dtos.events.incoming.MakerCheckerDecision;
-import com.ebikes.organizations.services.InboxService;
-import com.ebikes.organizations.services.OrganizationService;
+import com.ebikes.organizations.services.events.InboxService;
+import com.ebikes.organizations.services.organizations.OrganizationService;
 import com.ebikes.organizations.support.context.EventContext;
 
 import lombok.RequiredArgsConstructor;
@@ -55,6 +55,6 @@ public class MakerCheckerEventListener implements IncomingEventHandler {
 
   @Override
   public boolean matches(String routingKey) {
-    return routingKey.startsWith(RoutingKeys.MAKER_CHECKER_ORGANIZATION);
+    return routingKey.startsWith(ExternalContracts.MAKER_CHECKER_ORGANIZATION);
   }
 }

@@ -1,0 +1,79 @@
+name: CI PR
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+
+permissions: {}
+
+concurrency:
+  group: ci-pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  changes:
+    name: detect-changes
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: read
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            source:
+              - 'src/**'
+              - 'pom.xml'
+              - 'Dockerfile'
+              - 'checkstyle/**'
+              - '.github/workflows/ci-pr.yml'
+
+  quality-gate:
+    name: quality-gate
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions: {}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run unit and slice tests
+        run: ./mvnw test -B
+
+      - name: Analyse with Sonar
+        run: |
+          ./mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Set up Python for Semgrep
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: '3.13'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: semgrep --config auto --error

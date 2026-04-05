@@ -22,7 +22,7 @@ import com.ebikes.organizations.dtos.responses.documents.DocumentResponse;
 import com.ebikes.organizations.dtos.responses.documents.DocumentUploadInitiationResponse;
 import com.ebikes.organizations.enums.BusinessRegistrationType;
 import com.ebikes.organizations.enums.DocumentType;
-import com.ebikes.organizations.services.DocumentService;
+import com.ebikes.organizations.services.documents.DocumentService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,7 +38,10 @@ public class DocumentController {
       @Valid @RequestBody DocumentUploadInitiationRequest request) {
     DocumentUploadInitiationResponse response =
         documentService.initiateUpload(
-            request.documentType(), request.fileName(), request.contentType());
+            request.documentType(),
+            request.fileName(),
+            request.contentType(),
+            request.expiryDate());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(SuccessResponse.of(response, "Upload initiated successfully."));
   }
@@ -67,7 +70,8 @@ public class DocumentController {
   public ResponseEntity<SuccessResponse<DocumentUploadInitiationResponse>> replaceDocument(
       @PathVariable UUID id, @Valid @RequestBody DocumentUploadInitiationRequest request) {
     DocumentUploadInitiationResponse response =
-        documentService.replaceDocument(id, request.fileName(), request.contentType());
+        documentService.replaceDocument(
+            id, request.fileName(), request.contentType(), request.expiryDate());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(SuccessResponse.of(response, "Document replacement initiated"));
   }

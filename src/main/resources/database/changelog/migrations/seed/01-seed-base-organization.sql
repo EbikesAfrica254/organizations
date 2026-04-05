@@ -46,7 +46,7 @@ INSERT INTO organizations.organizations (
      '00000000-0000-0000-0000-000000000000',
      '+254700000000',
      NULL,
-     'REGISTERED_COMPANY',
+     'PRIVATE_LIMITED_COMPANY',
      NULL,
      'ACTIVE',
      NOW(),

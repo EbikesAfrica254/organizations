@@ -17,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.ebikes.organizations.constants.ApplicationConstants;
@@ -29,13 +28,14 @@ import com.ebikes.organizations.support.web.IpAddressUtilities;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-@Component
 @Slf4j
 public class ContextFilter extends OncePerRequestFilter {
 
   private static final String ACTIVE_BRANCH_CLAIM = "active_branch";
   private static final String ACTIVE_ORGANIZATION_CLAIM = "active_organization";
+  private static final String EMAIL_CLAIM = "email";
   private static final String GROUPS_CLAIM = "groups";
+  private static final String PHONE_NUMBER_CLAIM = "phone_number";
   private static final String REALM_ACCESS_CLAIM = "realm_access";
   private static final String ROLES_KEY = "roles";
   private static final String SUB_CLAIM = "sub";
@@ -57,18 +57,23 @@ public class ContextFilter extends OncePerRequestFilter {
         if (userId != null && !userId.isBlank()) {
           String activeOrganization = token.getClaimAsString(ACTIVE_ORGANIZATION_CLAIM);
           String activeBranch = token.getClaimAsString(ACTIVE_BRANCH_CLAIM);
+          String email = token.getClaimAsString(EMAIL_CLAIM);
           String ipAddress = IpAddressUtilities.getClientIpAddress(request);
+          String phoneNumber = token.getClaimAsString(PHONE_NUMBER_CLAIM);
           Set<String> roles = extractRoles(token);
           Set<String> groups = extractGroups(token);
 
-          ExecutionContext.set(userId, activeOrganization, activeBranch, groups, roles);
+          ExecutionContext.set(
+              userId, activeOrganization, activeBranch, email, groups, phoneNumber, roles);
 
           populateMDC(request, userId, ipAddress, activeOrganization, activeBranch);
 
           log.debug(
-              "Execution context set: userId={}, ipAddress={}, activeOrganization={},"
-                  + " activeBranch={}, roles={}, groups={}, path={}",
+              "Request context set: userId={}, email={}, phoneNumber={}, ipAddress={},"
+                  + " activeOrganization={}, activeBranch={}, roles={}, groups={}, path={}",
               userId,
+              email,
+              phoneNumber,
               ipAddress,
               activeOrganization,
               activeBranch,
@@ -76,11 +81,14 @@ public class ContextFilter extends OncePerRequestFilter {
               groups,
               request.getRequestURI());
         } else {
+          ExecutionContext.setSystem();
           log.warn(
               "JWT missing sub claim: path={}, subject={}",
               request.getRequestURI(),
               token.getSubject());
         }
+      } else {
+        ExecutionContext.setSystem();
       }
 
       filterChain.doFilter(request, response);

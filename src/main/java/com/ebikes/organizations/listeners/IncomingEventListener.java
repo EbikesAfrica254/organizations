@@ -1,6 +1,5 @@
 package com.ebikes.organizations.listeners;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.springframework.messaging.Message;
@@ -43,8 +42,6 @@ public class IncomingEventListener {
 
     try {
       handler.handle((byte[]) message.getPayload());
-    } catch (IOException e) {
-      log.error("Failed to deserialize message payload for routingKey={}", routingKey, e);
     } catch (Exception e) {
       log.error("Failed to process message for routingKey={}", routingKey, e);
     }

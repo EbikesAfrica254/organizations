@@ -1,5 +1,7 @@
 package com.ebikes.organizations.database.repositories;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,4 +22,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
   List<Document> findByOrganizationIdAndStatusIn(
       UUID organizationId, List<DocumentStatus> statuses);
+
+  List<Document> findByStatusAndExpiryDateBefore(DocumentStatus status, LocalDate date);
+
+  List<Document> findByStatusAndUploadedAtBefore(DocumentStatus status, OffsetDateTime threshold);
 }
