@@ -19,5 +19,4 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 public abstract class AbstractIntegrationTest {
 
   @MockitoBean protected JwtDecoder jwtDecoder;
-
 }

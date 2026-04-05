@@ -139,7 +139,7 @@ class SnapshotCreatorTest {
     void shouldThrowWhenRequestIsNull() {
       TestEntity entity = new TestEntity("x", OrganizationStatus.ACTIVE, true, 1, List.of());
       assertThatThrownBy(() -> service.extractChanges(null, entity))
-              .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -147,7 +147,7 @@ class SnapshotCreatorTest {
     void shouldThrowWhenEntityIsNull() {
       Object request = new TestRequest("name", null);
       assertThatThrownBy(() -> service.extractChanges(request, null))
-              .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class);
     }
   }
 

@@ -58,6 +58,9 @@ public class DocumentExpiryJob {
 
     affectedOrganizations.forEach(organizationService::updateComplianceStatus);
 
-    log.info("document-expiry: expired={}, orgs-affected={}", expired.size(), affectedOrganizations.size());
+    log.info(
+        "document-expiry: expired={}, orgs-affected={}",
+        expired.size(),
+        affectedOrganizations.size());
   }
 }
