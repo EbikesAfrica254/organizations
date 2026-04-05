@@ -28,6 +28,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -35,6 +36,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 @Table(name = "documents", schema = "organizations")
+@ToString(exclude = "organization")
 public class Document extends AuditableEntity implements Auditable {
 
   @Column(name = "document_type", nullable = false, length = 50)

@@ -22,6 +22,7 @@ import com.ebikes.organizations.exceptions.ValidationException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -29,6 +30,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 @Table(name = "branch_addresses", schema = "organizations")
+@ToString(exclude = "branch")
 public class BranchAddress extends AuditableEntity {
 
   @Column(name = "address_tag", nullable = false, length = 50)
