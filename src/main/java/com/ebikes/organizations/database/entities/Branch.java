@@ -109,7 +109,7 @@ public class Branch extends AuditableEntity implements Auditable {
         "displayName",
         displayName,
         "organizationId",
-        organization.getId().toString(),
+        String.valueOf(organization.getId()),
         "status",
         status.name());
   }
