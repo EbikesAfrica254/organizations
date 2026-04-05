@@ -3,6 +3,7 @@ package com.ebikes.organizations.database.entities;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Map;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,21 +22,29 @@ import com.ebikes.organizations.enums.DocumentStatus;
 import com.ebikes.organizations.enums.DocumentType;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.BusinessRuleException;
+import com.ebikes.organizations.support.audit.Auditable;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @Table(name = "documents", schema = "organizations")
-public class Document extends AuditableEntity {
+@ToString(exclude = "organization")
+public class Document extends AuditableEntity implements Auditable {
 
   @Column(name = "document_type", nullable = false, length = 50)
   @Enumerated(EnumType.STRING)
   @NotNull private DocumentType documentType;
+
+  @Column(name = "expired_at", columnDefinition = "TIMESTAMPTZ")
+  private OffsetDateTime expiredAt;
 
   @Column(name = "expiry_date")
   private LocalDate expiryDate;
@@ -54,17 +63,16 @@ public class Document extends AuditableEntity {
 
   @JoinColumn(name = "organization_id")
   @ManyToOne(fetch = FetchType.LAZY)
-  @SuppressWarnings(
-      "EI_EXPOSE_REP2") // JPA-managed association; defensive copy would break persistence context
   private Organization organization;
 
   @JoinColumn(name = "replaces_document_id")
   @ManyToOne(fetch = FetchType.LAZY)
   private Document replacesDocument;
 
+  @Builder.Default
   @Column(name = "status", nullable = false, length = 50)
   @Enumerated(EnumType.STRING)
-  @NotNull private DocumentStatus status;
+  @NotNull private DocumentStatus status = DocumentStatus.PENDING;
 
   @Column(name = "uploaded_at")
   private OffsetDateTime uploadedAt;
@@ -72,20 +80,6 @@ public class Document extends AuditableEntity {
   @Column(nullable = false)
   @Version
   private Long version;
-
-  @Builder
-  public Document(
-      @NotNull DocumentType documentType,
-      LocalDate expiryDate,
-      @NotNull String fileName,
-      @NotNull String mimeType) {
-
-    this.documentType = documentType;
-    this.expiryDate = expiryDate;
-    this.fileName = fileName;
-    this.mimeType = mimeType;
-    this.status = DocumentStatus.PENDING;
-  }
 
   public void activate() {
     if (this.status != DocumentStatus.UPLOADED) {
@@ -118,6 +112,25 @@ public class Document extends AuditableEntity {
     this.replacesDocument = oldDocument;
   }
 
+  public void markArchived() {
+    if (this.status != DocumentStatus.UPLOADED) {
+      throw new BusinessRuleException(
+          ResponseCode.INVALID_STATE,
+          "Only UPLOADED documents can be archived. Current status: " + this.status);
+    }
+    this.status = DocumentStatus.ARCHIVED;
+  }
+
+  public void markExpired() {
+    if (this.status != DocumentStatus.ACTIVE) {
+      throw new BusinessRuleException(
+          ResponseCode.INVALID_STATE,
+          "Only ACTIVE documents can be expired. Current status: " + this.status);
+    }
+    this.status = DocumentStatus.EXPIRED;
+    this.expiredAt = OffsetDateTime.now(ZoneOffset.UTC);
+  }
+
   public void markReplaced() {
     if (this.status != DocumentStatus.ACTIVE && this.status != DocumentStatus.EXPIRED) {
       throw new BusinessRuleException(
@@ -137,5 +150,13 @@ public class Document extends AuditableEntity {
     this.uploadedAt = OffsetDateTime.now(ZoneOffset.UTC);
     this.fileSizeBytes = fileSizeBytes;
     this.mimeType = mimeType;
+  }
+
+  @Override
+  public Map<String, String> toAuditMetadata() {
+    return Map.of(
+        "documentType", documentType.name(),
+        "organizationId", organization != null ? organization.getId().toString() : "",
+        "status", status.name());
   }
 }

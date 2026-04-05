@@ -1,0 +1,11 @@
+title = "Spring Boot microservice baseline"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Narrow false-positive suppressions for non-executable documentation assets only"
+paths = [
+    '''(^|/)documentation/.*\.(png|jpg|jpeg|gif|svg|webp)$''',
+    '''(^|/)\.gitleaks\.toml$'''
+]

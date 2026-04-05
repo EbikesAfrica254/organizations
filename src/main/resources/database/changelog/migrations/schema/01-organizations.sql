@@ -66,7 +66,7 @@ ALTER TABLE organizations.organizations
 
 ALTER TABLE organizations.organizations
     ADD CONSTRAINT chk_organizations_registration_type
-        CHECK (registration_type IN ('FOREIGN_ENTITY', 'LIMITED_LIABILITY_ENTITY', 'PARTNERSHIP', 'REGISTERED_COMPANY', 'SOLE_PROPRIETOR'));
+        CHECK (registration_type IN ('FOREIGN_ENTITY', 'LIMITED_LIABILITY_ENTITY', 'PARTNERSHIP', 'PRIVATE_LIMITED_COMPANY', 'SOLE_PROPRIETOR'));
 
 ALTER TABLE organizations.organizations
     ADD CONSTRAINT chk_organizations_status

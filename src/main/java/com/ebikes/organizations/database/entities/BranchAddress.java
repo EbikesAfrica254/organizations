@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -14,8 +13,6 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.ebikes.organizations.database.entities.bases.AuditableEntity;
 import com.ebikes.organizations.dtos.requests.branches.BranchAddressRequest;
 import com.ebikes.organizations.enums.AddressTag;
@@ -23,15 +20,17 @@ import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.ValidationException;
 
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @Table(name = "branch_addresses", schema = "organizations")
+@ToString(exclude = "branch")
 public class BranchAddress extends AuditableEntity {
 
   @Column(name = "address_tag", nullable = false, length = 50)
@@ -59,27 +58,6 @@ public class BranchAddress extends AuditableEntity {
 
   @Column(name = "street_address", nullable = false, length = 500)
   @NotBlank private String streetAddress;
-
-  @Builder
-  public BranchAddress(
-      @NotNull AddressTag addressTag,
-      @NotNull Branch branch,
-      @NotBlank String city,
-      @NotBlank String country,
-      @NotNull BigDecimal latitude,
-      @NotNull BigDecimal longitude,
-      String postalCode,
-      @NotBlank String streetAddress) {
-
-    this.addressTag = addressTag;
-    this.branch = branch;
-    this.city = city;
-    this.country = country;
-    this.latitude = latitude;
-    this.longitude = longitude;
-    this.postalCode = postalCode;
-    this.streetAddress = streetAddress;
-  }
 
   public void update(BranchAddressRequest request) {
     if (request.city() != null && !request.city().isBlank()) {

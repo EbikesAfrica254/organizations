@@ -29,14 +29,17 @@ import com.ebikes.organizations.dtos.responses.api.PaginatedResponse;
 import com.ebikes.organizations.dtos.responses.api.SuccessResponse;
 import com.ebikes.organizations.dtos.responses.documents.DocumentPreviewResponse;
 import com.ebikes.organizations.dtos.responses.documents.DocumentSummaryResponse;
+import com.ebikes.organizations.dtos.responses.organizations.OrganizationReference;
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationResponse;
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationSummaryResponse;
 import com.ebikes.organizations.mappers.OrganizationMapper;
-import com.ebikes.organizations.services.DocumentService;
-import com.ebikes.organizations.services.OrganizationService;
+import com.ebikes.organizations.services.documents.DocumentService;
+import com.ebikes.organizations.services.organizations.OrganizationService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/organizations")
 @RestController
@@ -91,10 +94,17 @@ public class OrganizationController {
     return ResponseEntity.ok(SuccessResponse.of(documents));
   }
 
+  @GetMapping("/reference")
+  public ResponseEntity<SuccessResponse<List<OrganizationReference>>> findReferences(
+      @RequestParam List<UUID> ids) {
+    List<OrganizationReference> references = organizationService.findReferencesByIds(ids);
+    return ResponseEntity.ok(SuccessResponse.of(references));
+  }
+
   @PreAuthorize("isAuthenticated()")
   @GetMapping
   public ResponseEntity<PaginatedResponse<OrganizationSummaryResponse>> search(
-      @ModelAttribute OrganizationFilter filter) {
+      @Valid @ModelAttribute OrganizationFilter filter) {
     Page<Organization> page = organizationService.search(filter);
     Page<OrganizationSummaryResponse> responsePage =
         page.map(organizationMapper::toSummaryResponse);

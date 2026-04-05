@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,17 +25,20 @@ import com.ebikes.organizations.database.models.DaySchedule;
 import com.ebikes.organizations.enums.BranchStatus;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.BusinessRuleException;
+import com.ebikes.organizations.support.audit.Auditable;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @Table(name = "branches", schema = "organizations")
-public class Branch extends AuditableEntity {
+public class Branch extends AuditableEntity implements Auditable {
 
   @Column(name = "branch_name", nullable = false)
   @NotBlank private String branchName;
@@ -51,41 +55,22 @@ public class Branch extends AuditableEntity {
   @Column(nullable = false)
   @NotBlank private String email;
 
+  @Builder.Default
   @Column(name = "operating_hours", nullable = false, columnDefinition = "jsonb")
   @JdbcTypeCode(SqlTypes.JSON)
   private List<DaySchedule> operatingHours = new ArrayList<>();
 
   @JoinColumn(name = "organization_id", nullable = false, updatable = false)
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @NotNull @SuppressWarnings(
-      "EI_EXPOSE_REP2") // JPA-managed association; defensive copy would break persistence context
-  private Organization organization;
+  @NotNull private Organization organization;
 
   @Column(name = "phone_number", nullable = false, length = 20)
   @NotBlank private String phoneNumber;
 
+  @Builder.Default
   @Column(nullable = false, length = 50)
   @Enumerated(EnumType.STRING)
-  @NotNull private BranchStatus status;
-
-  @Builder
-  public Branch(
-      @NotBlank String branchName,
-      @NotBlank String displayName,
-      @NotBlank String email,
-      List<DaySchedule> operatingHours,
-      @NotNull Organization organization,
-      @NotBlank String phoneNumber) {
-
-    this.branchName = branchName;
-    this.displayName = displayName;
-    this.email = email;
-    this.operatingHours =
-        operatingHours != null ? new ArrayList<>(operatingHours) : new ArrayList<>();
-    this.organization = organization;
-    this.phoneNumber = phoneNumber;
-    this.status = BranchStatus.ACTIVE;
-  }
+  @NotNull private BranchStatus status = BranchStatus.ACTIVE;
 
   public void deactivate(String reason) {
     if (this.status != BranchStatus.ACTIVE && this.status != BranchStatus.SUSPENDED) {
@@ -114,6 +99,19 @@ public class Branch extends AuditableEntity {
           "Only ACTIVE branches can be suspended. Current status: " + this.status);
     }
     this.status = BranchStatus.SUSPENDED;
+  }
+
+  @Override
+  public Map<String, String> toAuditMetadata() {
+    return Map.of(
+        "branchName",
+        branchName,
+        "displayName",
+        displayName,
+        "organizationId",
+        String.valueOf(organization.getId()),
+        "status",
+        status.name());
   }
 
   public void update(

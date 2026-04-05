@@ -15,11 +15,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrganizationFilter extends BaseFilter {
 
-  private OffsetDateTime activatedAtAfter;
-  private OffsetDateTime activatedAtBefore;
+  private OffsetDateTime activatedAtFrom;
+  private OffsetDateTime activatedAtTo;
   private ComplianceStatus complianceStatus;
-  private OffsetDateTime createdAtAfter;
-  private OffsetDateTime createdAtBefore;
+  private OffsetDateTime createdAtFrom;
+  private OffsetDateTime createdAtTo;
   private String legalName;
   private BusinessRegistrationType registrationType;
   private OrganizationStatus status;

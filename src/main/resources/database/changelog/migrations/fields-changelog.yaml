@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-update-outbox-status-enum
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: fields/01-update-outbox-status-enum.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 02-correct-compliance-default
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: fields/02-correct-compliance-default.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 03-documents-add-expired-at
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: fields/03-documents-add-expired-at.sql
+            relativeToChangelogFile: true

@@ -1,0 +1,9 @@
+spring:
+  autoconfigure:
+    exclude: []
+
+  cloud:
+    stream:
+      default-binder: rabbit
+    function:
+      definition: incomingEventConsumer

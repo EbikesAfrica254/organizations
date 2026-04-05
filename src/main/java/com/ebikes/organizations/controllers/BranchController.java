@@ -26,13 +26,14 @@ import com.ebikes.organizations.dtos.requests.branches.DeactivateBranchRequest;
 import com.ebikes.organizations.dtos.requests.branches.UpdateBranchRequest;
 import com.ebikes.organizations.dtos.responses.api.SuccessResponse;
 import com.ebikes.organizations.dtos.responses.branches.BranchAddressResponse;
+import com.ebikes.organizations.dtos.responses.branches.BranchReference;
 import com.ebikes.organizations.dtos.responses.branches.BranchResponse;
 import com.ebikes.organizations.dtos.responses.branches.BranchSummaryResponse;
 import com.ebikes.organizations.mappers.BranchAddressMapper;
 import com.ebikes.organizations.mappers.BranchMapper;
-import com.ebikes.organizations.services.BranchAddressService;
-import com.ebikes.organizations.services.BranchService;
-import com.ebikes.organizations.services.OrganizationService;
+import com.ebikes.organizations.services.branches.BranchAddressService;
+import com.ebikes.organizations.services.branches.BranchService;
+import com.ebikes.organizations.services.organizations.OrganizationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -94,6 +95,13 @@ public class BranchController {
     List<BranchSummaryResponse> responses =
         branches.stream().map(branchMapper::toSummaryResponse).toList();
     return ResponseEntity.ok(SuccessResponse.of(responses));
+  }
+
+  @GetMapping("/reference")
+  public ResponseEntity<SuccessResponse<List<BranchReference>>> findReferences(
+      @PathVariable UUID organizationId, @RequestParam List<UUID> ids) {
+    List<BranchReference> references = branchService.findReferencesByIds(ids, organizationId);
+    return ResponseEntity.ok(SuccessResponse.of(references));
   }
 
   @PreAuthorize("hasAnyAuthority('ORGANIZATION_ADMIN', 'SYSTEM_ADMIN')")

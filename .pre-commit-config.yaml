@@ -1,0 +1,46 @@
+default_install_hook_types:
+  - pre-commit
+  - pre-push
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: check-merge-conflict
+        stages: [pre-commit]
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        stages: [pre-commit]
+      - id: check-xml
+        stages: [pre-commit]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: spotless-apply
+        name: Spotless apply
+        entry: ./mvnw -q spotless:apply
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: checkstyle-check
+        name: Checkstyle check
+        entry: ./mvnw -q checkstyle:check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: unit-and-slice-tests
+        name: Unit and slice tests
+        entry: ./mvnw -q test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

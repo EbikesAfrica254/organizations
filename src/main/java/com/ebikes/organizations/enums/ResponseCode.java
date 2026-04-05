@@ -1,6 +1,6 @@
 package com.ebikes.organizations.enums;
 
-import static com.ebikes.organizations.constants.EventConstants.EventSource.HOST_SERVICE;
+import static com.ebikes.organizations.constants.EventConstants.Source.ORGANIZATIONS;
 
 import org.springframework.http.HttpStatus;
 
@@ -39,29 +39,25 @@ public enum ResponseCode {
       "RESOURCE_NOT_FOUND", "The specified resource does not exist.", HttpStatus.NOT_FOUND),
 
   INVALID_SECURITY_CODE(
-      HOST_SERVICE + ".INVALID_SECURITY_CODE",
+      ORGANIZATIONS + ".INVALID_SECURITY_CODE",
       "The provided code is invalid or malformed.",
       HttpStatus.BAD_REQUEST),
   SECURITY_CODE_ALREADY_USED(
-      HOST_SERVICE + ".SECURITY_CODE_ALREADY_USED",
+      ORGANIZATIONS + ".SECURITY_CODE_ALREADY_USED",
       "This code has already been used.",
       HttpStatus.BAD_REQUEST),
   SECURITY_CODE_EXPIRED(
-      HOST_SERVICE + ".SECURITY_CODE_EXPIRED",
+      ORGANIZATIONS + ".SECURITY_CODE_EXPIRED",
       "The code has expired. Please request a new one.",
       HttpStatus.BAD_REQUEST),
   SECURITY_CODE_NOT_FOUND(
-      HOST_SERVICE + ".SECURITY_CODE_NOT_FOUND",
+      ORGANIZATIONS + ".SECURITY_CODE_NOT_FOUND",
       "The specified code does not exist.",
       HttpStatus.NOT_FOUND),
   SECURITY_CODE_TYPE_MISMATCH(
-      HOST_SERVICE + ".SECURITY_CODE_TYPE_MISMATCH",
+      ORGANIZATIONS + ".SECURITY_CODE_TYPE_MISMATCH",
       "The code type does not match the expected type.",
-      HttpStatus.BAD_REQUEST),
-  TEMPLATE_PROCESSING_ERROR(
-      HOST_SERVICE + ".TEMPLATE_PROCESSING_ERROR",
-      "An error occurred while processing the template.",
-      HttpStatus.INTERNAL_SERVER_ERROR);
+      HttpStatus.BAD_REQUEST);
 
   private final String code;
   private final String userMessage;

@@ -8,7 +8,7 @@ import java.util.UUID;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import com.ebikes.organizations.constants.EventConstants.EventSource;
+import com.ebikes.organizations.constants.EventConstants.Source;
 import com.ebikes.organizations.enums.AuditOutcome;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -29,7 +29,7 @@ public record AuditEvent(
 
   public AuditEvent {
     metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
-    serviceReference = serviceReference == null ? EventSource.serviceReference() : serviceReference;
+    serviceReference = serviceReference == null ? Source.serviceReference() : serviceReference;
     timestamp = timestamp == null ? Instant.now() : timestamp;
   }
 }

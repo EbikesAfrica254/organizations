@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-organization-constraints
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: constraints/01-organization-constraints.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 02-document-status-archived
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: constraints/02-document-status-archived.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 03-partner-type-constraints
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: constraints/03-partner-type-constraints.sql
+            relativeToChangelogFile: true

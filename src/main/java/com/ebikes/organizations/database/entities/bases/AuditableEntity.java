@@ -1,6 +1,5 @@
 package com.ebikes.organizations.database.entities.bases;
 
-import java.io.Serial;
 import java.time.OffsetDateTime;
 
 import jakarta.persistence.Column;
@@ -13,13 +12,15 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @MappedSuperclass
+@NoArgsConstructor
+@SuperBuilder
 public abstract class AuditableEntity extends BaseEntity {
-
-  @Serial private static final long serialVersionUID = 1L;
 
   @CreatedBy
   @Column(name = "created_by", nullable = false, updatable = false, length = 36)

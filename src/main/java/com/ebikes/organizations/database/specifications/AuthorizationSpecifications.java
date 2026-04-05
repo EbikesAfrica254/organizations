@@ -1,11 +1,9 @@
 package com.ebikes.organizations.database.specifications;
 
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.jpa.domain.Specification;
 
-import com.ebikes.organizations.constants.ApplicationConstants;
 import com.ebikes.organizations.database.entities.Branch;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.enums.ResponseCode;
@@ -18,11 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class AuthorizationSpecifications {
 
-  private static final UUID BASE_ORGANIZATION_ID =
-      UUID.fromString(ApplicationConstants.BASE_ORGANIZATION_ID);
-
   private AuthorizationSpecifications() {
-    throw new UnsupportedOperationException(ApplicationConstants.CLASS_CANNOT_BE_INSTANTIATED);
+    // prevent instantiation
   }
 
   public static void assertBranchOwnership(Branch branch, UUID organizationId) {
@@ -39,11 +34,16 @@ public final class AuthorizationSpecifications {
   }
 
   public static void assertOrganizationAccess(UUID organizationId) {
-    Set<String> roles = ExecutionContext.getRoles();
-    if (RBACUtilities.hasSystemAdminRole(RBACUtilities.parseRoles(roles))) {
+    if (!(ExecutionContext.get() instanceof ExecutionContext.UserContext ctx)) {
+      throw new AuthorizationException(
+          ResponseCode.FORBIDDEN, "Organization access is not permitted in system context");
+    }
+
+    if (RBACUtilities.hasSystemAdminRole(RBACUtilities.parseRoles(ctx.roles()))) {
       return;
     }
-    String activeOrganization = validateActiveOrganization();
+
+    String activeOrganization = validateActiveOrganization(ctx);
     if (!organizationId.toString().equals(activeOrganization)) {
       log.error(
           "Organization access denied: requestedOrgId={}, activeOrgId={}",
@@ -55,33 +55,30 @@ public final class AuthorizationSpecifications {
   }
 
   public static Specification<Organization> forOrganizations() {
-    Set<String> roles = ExecutionContext.getRoles();
-    Specification<Organization> excludeBaseOrg = excludeBaseOrganization();
-
-    if (RBACUtilities.hasSystemAdminRole(RBACUtilities.parseRoles(roles))) {
-      log.debug("SYSTEM_ADMIN access: returning all organizations excluding base");
-      return excludeBaseOrg;
+    if (!(ExecutionContext.get() instanceof ExecutionContext.UserContext ctx)) {
+      throw new AuthorizationException(
+          ResponseCode.FORBIDDEN, "Organizations are not accessible in system context");
     }
 
-    String userId = ExecutionContext.getUserId();
-    log.debug("Filtering organizations by createdBy: userId={}", userId);
+    if (RBACUtilities.hasSystemAdminRole(RBACUtilities.parseRoles(ctx.roles()))) {
+      return noFilter();
+    }
 
-    return excludeBaseOrg.and(filterByCreatedBy(userId));
+    return filterByCreatedBy(ctx.userId());
   }
 
-  private static Specification<Organization> excludeBaseOrganization() {
-    return (root, query, criteriaBuilder) ->
-        criteriaBuilder.notEqual(root.get("id"), BASE_ORGANIZATION_ID);
+  private static <T> Specification<T> noFilter() {
+    return (root, query, cb) -> cb.conjunction();
   }
 
   private static Specification<Organization> filterByCreatedBy(String userId) {
-    return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("createdBy"), userId);
+    return (root, query, cb) -> cb.equal(root.get("createdBy"), userId);
   }
 
-  private static String validateActiveOrganization() {
-    String activeOrganization = ExecutionContext.getActiveOrganization();
+  private static String validateActiveOrganization(ExecutionContext.UserContext ctx) {
+    String activeOrganization = ctx.activeOrganization();
     if (activeOrganization == null || activeOrganization.isBlank()) {
-      log.error("Missing active_organization claim for {} access", "organization");
+      log.error("Missing active_organization claim for organization access");
       throw new AuthorizationException(
           ResponseCode.FORBIDDEN, "Active organization context required for this operation");
     }
