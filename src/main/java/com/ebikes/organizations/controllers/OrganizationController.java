@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,9 +22,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ebikes.organizations.database.entities.Organization;
+import com.ebikes.organizations.dtos.internal.UploadUrlData;
 import com.ebikes.organizations.dtos.requests.filters.OrganizationFilter;
 import com.ebikes.organizations.dtos.requests.organizations.CreateOrganizationRequest;
 import com.ebikes.organizations.dtos.requests.organizations.DeactivateOrganizationRequest;
+import com.ebikes.organizations.dtos.requests.organizations.ImageUploadConfirmationRequest;
 import com.ebikes.organizations.dtos.requests.organizations.UpdateOrganizationRequest;
 import com.ebikes.organizations.dtos.responses.api.PaginatedResponse;
 import com.ebikes.organizations.dtos.responses.api.SuccessResponse;
@@ -34,6 +37,7 @@ import com.ebikes.organizations.dtos.responses.organizations.OrganizationRespons
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationSummaryResponse;
 import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.documents.DocumentService;
+import com.ebikes.organizations.services.images.ImageService;
 import com.ebikes.organizations.services.organizations.OrganizationService;
 
 import lombok.RequiredArgsConstructor;
@@ -46,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OrganizationController {
 
   private final DocumentService documentService;
+  private final ImageService imageService;
   private final OrganizationMapper organizationMapper;
   private final OrganizationService organizationService;
 
@@ -92,6 +97,33 @@ public class OrganizationController {
     List<DocumentSummaryResponse> documents =
         documentService.findByOrganization(id, includeInactive);
     return ResponseEntity.ok(SuccessResponse.of(documents));
+  }
+
+  @PreAuthorize("hasAnyAuthority('ORGANIZATION_ADMIN', 'SYSTEM_ADMIN')")
+  @PostMapping("/{id}/logo/upload-url")
+  public ResponseEntity<SuccessResponse<UploadUrlData>> generateLogoUploadUrl(
+      @PathVariable UUID id) {
+    UploadUrlData uploadUrlData = imageService.generateImageUploadUrl(id);
+    return ResponseEntity.ok(
+        SuccessResponse.of(uploadUrlData, "Logo upload URL generated successfully"));
+  }
+
+  @PreAuthorize("hasAnyAuthority('ORGANIZATION_ADMIN', 'SYSTEM_ADMIN')")
+  @PutMapping("/{id}/logo")
+  public ResponseEntity<Void> confirmLogoUpload(
+      @PathVariable UUID id, @Valid @RequestBody ImageUploadConfirmationRequest request) {
+    imageService.confirmImageUpload(id, request);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PreAuthorize("isAuthenticated()")
+  @GetMapping("/{id}/logo")
+  public ResponseEntity<Void> getLogo(@PathVariable UUID id) {
+    String redirectUrl = imageService.generateImageRedirectUrl(id);
+    return ResponseEntity.status(HttpStatus.FOUND)
+        .header(HttpHeaders.LOCATION, redirectUrl)
+        .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+        .build();
   }
 
   @GetMapping("/reference")
