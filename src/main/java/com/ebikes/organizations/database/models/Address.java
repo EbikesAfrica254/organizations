@@ -19,4 +19,13 @@ public record Address(
     @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal longitude,
     @Size(max = 20) String postalCode,
     @NotBlank @Size(max = 500) String streetAddress)
-    implements Serializable {}
+    implements Serializable {
+
+  public String toFormattedString() {
+    String base = streetAddress + ", " + city;
+    if (postalCode != null && !postalCode.isBlank()) {
+      base += ", " + postalCode;
+    }
+    return base + ", " + country;
+  }
+}
