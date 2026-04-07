@@ -151,7 +151,7 @@ jobs:
               --instance-ids "${INSTANCE_ID}" \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy organizations sha-${SHORT_SHA}" \
-              --parameters commands="/usr/local/bin/deploy-application.sh deploy organizations ${DEPLOYMENT_REFERENCE}" \
+              --parameters commands="ebikes-deploy-backend deploy organizations ${DEPLOYMENT_REFERENCE}" \
               --query 'Command.CommandId' \
               --output text
           )"
