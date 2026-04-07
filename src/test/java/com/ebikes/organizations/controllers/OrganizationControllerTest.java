@@ -8,9 +8,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
@@ -19,13 +22,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.ebikes.organizations.dtos.internal.UploadUrlData;
+import com.ebikes.organizations.dtos.requests.organizations.ImageUploadConfirmationRequest;
 import com.ebikes.organizations.enums.UserRole;
 import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.documents.DocumentService;
+import com.ebikes.organizations.services.images.ImageService;
 import com.ebikes.organizations.services.organizations.OrganizationService;
 import com.ebikes.organizations.support.fixtures.OrganizationFixtures;
 import com.ebikes.organizations.support.fixtures.OrganizationRequestFixtures;
@@ -44,11 +51,84 @@ class OrganizationControllerTest extends AbstractControllerTest {
 
   @MockitoBean private DocumentService documentService;
 
+  @MockitoBean private ImageService imageService;
+
   @MockitoBean private OrganizationMapper organizationMapper;
 
   @MockitoBean private OrganizationService organizationService;
 
   private static final UUID ORG_ID = UUID.randomUUID();
+
+  @Nested
+  @DisplayName("PUT /organizations/{id}/logo")
+  class ConfirmLogoUpload {
+
+    private ImageUploadConfirmationRequest validRequest() {
+      return new ImageUploadConfirmationRequest(102400L, "image/jpeg");
+    }
+
+    @Test
+    @DisplayName("should return 204 when user is ORGANIZATION_ADMIN")
+    void shouldReturn204WhenOrganizationAdmin() throws Exception {
+      mockMvc
+          .perform(
+              put("/organizations/{id}/logo", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.ORGANIZATION_ADMIN))
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(validRequest())))
+          .andExpect(status().isNoContent());
+
+      verify(imageService).confirmImageUpload(eq(ORG_ID), any());
+    }
+
+    @Test
+    @DisplayName("should return 204 when user is SYSTEM_ADMIN")
+    void shouldReturn204WhenSystemAdmin() throws Exception {
+      mockMvc
+          .perform(
+              put("/organizations/{id}/logo", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.SYSTEM_ADMIN))
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(validRequest())))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("should return 400 when request body is invalid")
+    void shouldReturn400WhenRequestBodyInvalid() throws Exception {
+      mockMvc
+          .perform(
+              put("/organizations/{id}/logo", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.ORGANIZATION_ADMIN))
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content("{}"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("should return 401 when unauthenticated")
+    void shouldReturn401WhenUnauthenticated() throws Exception {
+      mockMvc
+          .perform(
+              put("/organizations/{id}/logo", ORG_ID)
+                  .with(anonymous())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(validRequest())))
+          .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("should return 403 when role is insufficient")
+    void shouldReturn403WhenRoleInsufficient() throws Exception {
+      mockMvc
+          .perform(
+              put("/organizations/{id}/logo", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.CUSTOMER))
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(validRequest())))
+          .andExpect(status().isForbidden());
+    }
+  }
 
   @Nested
   @DisplayName("POST /organizations")
@@ -304,6 +384,88 @@ class OrganizationControllerTest extends AbstractControllerTest {
               get("/organizations/reference")
                   .param("ids", UUID.randomUUID().toString())
                   .with(anonymous()))
+          .andExpect(status().isUnauthorized());
+    }
+  }
+
+  @Nested
+  @DisplayName("POST /organizations/{id}/logo/upload-url")
+  class GenerateLogoUploadUrl {
+
+    @Test
+    @DisplayName("should return 200 when user is ORGANIZATION_ADMIN")
+    void shouldReturn200WhenOrganizationAdmin() throws Exception {
+      UploadUrlData uploadUrlData =
+          new UploadUrlData(
+              "https://s3.example.com/upload", Map.of(), Instant.now().plusSeconds(3600));
+      when(imageService.generateImageUploadUrl(ORG_ID)).thenReturn(uploadUrlData);
+
+      mockMvc
+          .perform(
+              post("/organizations/{id}/logo/upload-url", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.ORGANIZATION_ADMIN)))
+          .andExpect(status().isOk());
+
+      verify(imageService).generateImageUploadUrl(ORG_ID);
+    }
+
+    @Test
+    @DisplayName("should return 200 when user is SYSTEM_ADMIN")
+    void shouldReturn200WhenSystemAdmin() throws Exception {
+      UploadUrlData uploadUrlData =
+          new UploadUrlData(
+              "https://s3.example.com/upload", Map.of(), Instant.now().plusSeconds(3600));
+      when(imageService.generateImageUploadUrl(ORG_ID)).thenReturn(uploadUrlData);
+
+      mockMvc
+          .perform(
+              post("/organizations/{id}/logo/upload-url", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.SYSTEM_ADMIN)))
+          .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("should return 401 when unauthenticated")
+    void shouldReturn401WhenUnauthenticated() throws Exception {
+      mockMvc
+          .perform(post("/organizations/{id}/logo/upload-url", ORG_ID).with(anonymous()))
+          .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("should return 403 when role is insufficient")
+    void shouldReturn403WhenRoleInsufficient() throws Exception {
+      mockMvc
+          .perform(
+              post("/organizations/{id}/logo/upload-url", ORG_ID)
+                  .with(SecurityFixtures.authenticatedJwt(UserRole.CUSTOMER)))
+          .andExpect(status().isForbidden());
+    }
+  }
+
+  @Nested
+  @DisplayName("GET /organizations/{id}/logo")
+  class GetLogo {
+
+    @Test
+    @DisplayName("should return 302 with Location header when authenticated")
+    void shouldReturn302WithLocationHeaderWhenAuthenticated() throws Exception {
+      String redirectUrl = "https://s3.example.com/logos/presigned";
+      when(imageService.generateImageRedirectUrl(ORG_ID)).thenReturn(redirectUrl);
+
+      mockMvc
+          .perform(get("/organizations/{id}/logo", ORG_ID).with(authenticatedJwt()))
+          .andExpect(status().isFound())
+          .andExpect(header().string(HttpHeaders.LOCATION, redirectUrl));
+
+      verify(imageService).generateImageRedirectUrl(ORG_ID);
+    }
+
+    @Test
+    @DisplayName("should return 401 when unauthenticated")
+    void shouldReturn401WhenUnauthenticated() throws Exception {
+      mockMvc
+          .perform(get("/organizations/{id}/logo", ORG_ID).with(anonymous()))
           .andExpect(status().isUnauthorized());
     }
   }
