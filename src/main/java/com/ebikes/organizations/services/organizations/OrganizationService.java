@@ -1,5 +1,6 @@
 package com.ebikes.organizations.services.organizations;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,12 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
-import com.ebikes.organizations.constants.EventConstants.Source;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
 import com.ebikes.organizations.database.specifications.OrganizationSpecifications;
 import com.ebikes.organizations.dtos.events.incoming.MakerCheckerDecision;
-import com.ebikes.organizations.dtos.events.outgoing.OrganizationCreatedEvent;
 import com.ebikes.organizations.dtos.internal.FieldChange;
 import com.ebikes.organizations.dtos.requests.filters.OrganizationFilter;
 import com.ebikes.organizations.dtos.requests.organizations.CreateOrganizationRequest;
@@ -27,10 +26,10 @@ import com.ebikes.organizations.enums.ComplianceStatus;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
 import com.ebikes.organizations.exceptions.ResourceNotFoundException;
-import com.ebikes.organizations.mappers.EventMapper;
+import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.branches.BranchService;
 import com.ebikes.organizations.services.documents.DocumentService;
-import com.ebikes.organizations.services.events.OutboxService;
+import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 import com.ebikes.organizations.support.changes.ChangeApplier;
 import com.ebikes.organizations.support.changes.SnapshotCreator;
@@ -52,11 +51,11 @@ public class OrganizationService {
   private final BranchService branchService;
   private final ChangeApplier changeApplier;
   private final DocumentService documentService;
-  private final EventMapper eventMapper;
   private final MakerCheckerTemplate makerCheckerTemplate;
+  private final OrganizationMapper organizationMapper;
   private final OrganizationRepository repository;
-  private final OutboxService outboxService;
   private final SnapshotCreator snapshotCreator;
+  private final StorageService storageService;
 
   @Transactional
   public Organization create(CreateOrganizationRequest request) {
@@ -86,8 +85,6 @@ public class OrganizationService {
     documentService.associateWithOrganization(
         request.documents().stream().map(DocumentUploadInfo::key).toList(), organization);
 
-    // Re-fetch to hydrate the organization with its newly associated documents,
-    // which are needed for the maker-checker snapshot that follows.
     organization = requireById(organization.getId());
 
     List<FieldChange> changes = snapshotCreator.extractFields(organization);
@@ -125,7 +122,19 @@ public class OrganizationService {
 
   @Transactional(readOnly = true)
   public List<OrganizationReference> findReferencesByIds(List<UUID> organizationIds) {
-    return repository.findByIdIn(organizationIds);
+    return repository.findByIdIn(organizationIds).stream()
+        .map(
+            organization ->
+                organizationMapper.toReference(
+                    organization,
+                    organization.getAddresses().isEmpty()
+                        ? null
+                        : organization.getAddresses().getFirst().toFormattedString(),
+                    organization.getLogoKey() != null
+                        ? storageService.generatePreviewUrl(
+                            organization.getLogoKey(), Duration.ofHours(1))
+                        : null))
+        .toList();
   }
 
   @Transactional
@@ -136,23 +145,14 @@ public class OrganizationService {
     switch (decision.operation()) {
       case OPERATION_CREATE -> {
         if (approved) {
-          Organization approvedOrganization = recordCreateApproval(organization);
-          String serviceReference = Source.serviceReference();
-          OrganizationCreatedEvent event =
-              eventMapper.toOrganizationCreatedEvent(approvedOrganization, serviceReference);
-          outboxService.save(DomainEvents.Organization.CREATED, event, serviceReference);
+          recordCreateApproval(organization);
         } else {
           recordRejection(organization, decision.operation(), decision.reason());
         }
       }
       case OPERATION_UPDATE -> {
         if (approved) {
-          Organization approvedOrganization =
-              recordUpdateApproval(organization, decision.originalChanges());
-          String serviceReference = Source.serviceReference();
-          OrganizationCreatedEvent event =
-              eventMapper.toOrganizationCreatedEvent(approvedOrganization, serviceReference);
-          outboxService.save(DomainEvents.Organization.UPDATED, event, serviceReference);
+          recordUpdateApproval(organization, decision.originalChanges());
         } else {
           recordRejection(organization, decision.operation(), decision.reason());
         }
@@ -172,6 +172,16 @@ public class OrganizationService {
     Pageable pageable =
         FilterUtilities.buildPageable(filter, OrganizationSpecifications.ALLOWED_SORT_FIELDS);
     return repository.findAll(spec, pageable);
+  }
+
+  @Transactional
+  public String updateLogoKey(UUID organizationId, String newKey) {
+    Organization organization = requireById(organizationId);
+    String previousKey = organization.getLogoKey();
+    organization.updateLogoKey(newKey);
+    repository.save(organization);
+    log.info("Logo key updated: organizationId={}", organizationId);
+    return previousKey;
   }
 
   @Transactional
@@ -235,7 +245,7 @@ public class OrganizationService {
         "Compliance status updated: organizationId={}, status={}", organization.getId(), newStatus);
   }
 
-  Organization requireById(UUID organizationId) {
+  public Organization requireById(UUID organizationId) {
     return repository
         .findById(organizationId)
         .orElseThrow(
@@ -245,7 +255,7 @@ public class OrganizationService {
                     "Organization not found with ID: " + organizationId));
   }
 
-  private Organization recordCreateApproval(Organization organization) {
+  private void recordCreateApproval(Organization organization) {
     documentService.validateRequiredDocumentsUploaded(
         organization.getId(), organization.getRegistrationType());
     documentService.activateDocuments(organization.getId());
@@ -262,7 +272,6 @@ public class OrganizationService {
     branchService.createDefaultBranch(approved);
     log.info(
         "Organization creation approved and activated: organizationId={}", organization.getId());
-    return approved;
   }
 
   private void recordRejection(Organization organization, String operation, String reason) {
@@ -277,7 +286,7 @@ public class OrganizationService {
     log.info("Organization {} rejected: organizationId={}", operation, rejected.getId());
   }
 
-  private Organization recordUpdateApproval(Organization organization, List<FieldChange> changes) {
+  private void recordUpdateApproval(Organization organization, List<FieldChange> changes) {
     changeApplier.applyChanges(organization, changes);
     Organization approved =
         auditTemplate.execute(
@@ -290,6 +299,5 @@ public class OrganizationService {
         "Organization update approved and applied: organizationId={}, changesCount={}",
         approved.getId(),
         changes.size());
-    return approved;
   }
 }

@@ -2,4 +2,4 @@ package com.ebikes.organizations.dtos.responses.organizations;
 
 import java.util.UUID;
 
-public record OrganizationReference(UUID id, String displayName) {}
+public record OrganizationReference(UUID id, String address, String displayName, String logoUrl) {}

@@ -1,5 +1,6 @@
 package com.ebikes.organizations.services.branches;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +21,8 @@ import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
 import com.ebikes.organizations.exceptions.ResourceNotFoundException;
 import com.ebikes.organizations.exceptions.ValidationException;
+import com.ebikes.organizations.mappers.BranchMapper;
+import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 
 import lombok.RequiredArgsConstructor;
@@ -32,7 +35,9 @@ public class BranchService {
 
   private final AuditTemplate auditTemplate;
   private final BranchAddressService branchAddressService;
+  private final BranchMapper branchMapper;
   private final BranchRepository repository;
+  private final StorageService storageService;
 
   @Transactional
   public Branch create(Organization organization, CreateBranchRequest request) {
@@ -137,7 +142,16 @@ public class BranchService {
 
   @Transactional(readOnly = true)
   public List<BranchReference> findReferencesByIds(List<UUID> branchIds, UUID organizationId) {
-    return repository.findByIdInAndOrganizationId(branchIds, organizationId);
+    return repository.findByIdInAndOrganizationId(branchIds, organizationId).stream()
+        .map(
+            branch ->
+                branchMapper.toReference(
+                    branch,
+                    branch.getOrganization().getLogoKey() != null
+                        ? storageService.generatePreviewUrl(
+                            branch.getOrganization().getLogoKey(), Duration.ofHours(1))
+                        : null))
+        .toList();
   }
 
   @Transactional(readOnly = true)

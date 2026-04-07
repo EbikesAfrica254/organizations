@@ -36,6 +36,8 @@ import com.ebikes.organizations.exceptions.AuthorizationException;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
 import com.ebikes.organizations.exceptions.ResourceNotFoundException;
 import com.ebikes.organizations.exceptions.ValidationException;
+import com.ebikes.organizations.mappers.BranchMapper;
+import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 import com.ebikes.organizations.support.audit.ThrowingSupplier;
 import com.ebikes.organizations.support.fixtures.BranchFixtures;
@@ -53,7 +55,9 @@ class BranchServiceTest {
 
   @Mock private AuditTemplate auditTemplate;
   @Mock private BranchAddressService branchAddressService;
+  @Mock private BranchMapper branchMapper;
   @Mock private BranchRepository repository;
+  @Mock private StorageService storageService;
 
   private BranchService service;
   private Organization organization;
@@ -62,8 +66,9 @@ class BranchServiceTest {
   void setUp() {
     organization = OrganizationFixtures.active();
     ReflectionTestUtils.setField(organization, "id", ORGANIZATION_ID);
-
-    service = new BranchService(auditTemplate, branchAddressService, repository);
+    service =
+        new BranchService(
+            auditTemplate, branchAddressService, branchMapper, repository, storageService);
   }
 
   private Branch savedBranch() {
@@ -287,15 +292,17 @@ class BranchServiceTest {
   class FindReferencesByIds {
 
     @Test
-    @DisplayName("should delegate to repository and return result")
+    @DisplayName("should delegate to repository, map each branch, and return references")
     void shouldReturnReferences() {
       List<UUID> ids = List.of(BRANCH_ID);
-      BranchReference ref = new BranchReference(BRANCH_ID, "Main Branch");
-      when(repository.findByIdInAndOrganizationId(ids, ORGANIZATION_ID)).thenReturn(List.of(ref));
+      Branch active = BranchFixtures.active(organization);
+      BranchReference reference = new BranchReference(BRANCH_ID, active.getDisplayName(), null);
 
-      List<BranchReference> result = service.findReferencesByIds(ids, ORGANIZATION_ID);
+      when(repository.findByIdInAndOrganizationId(ids, ORGANIZATION_ID))
+          .thenReturn(List.of(active));
+      when(branchMapper.toReference(active, null)).thenReturn(reference);
 
-      assertThat(result).containsExactly(ref);
+      assertThat(service.findReferencesByIds(ids, ORGANIZATION_ID)).containsExactly(reference);
     }
   }
 

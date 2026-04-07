@@ -6,6 +6,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import com.ebikes.organizations.database.entities.Branch;
 import com.ebikes.organizations.dtos.responses.branches.BranchAddressResponse;
+import com.ebikes.organizations.dtos.responses.branches.BranchReference;
 import com.ebikes.organizations.dtos.responses.branches.BranchResponse;
 import com.ebikes.organizations.dtos.responses.branches.BranchSummaryResponse;
 
@@ -14,6 +15,10 @@ import com.ebikes.organizations.dtos.responses.branches.BranchSummaryResponse;
     nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
     uses = {BranchAddressMapper.class})
 public interface BranchMapper {
+
+  @Mapping(target = "id", source = "branch.id")
+  @Mapping(target = "logoUrl", source = "logoUrl")
+  BranchReference toReference(Branch branch, String logoUrl);
 
   @Mapping(target = "address", source = "branchAddress")
   @Mapping(target = "createdAt", source = "branch.createdAt")

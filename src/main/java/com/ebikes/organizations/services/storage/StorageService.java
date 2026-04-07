@@ -28,6 +28,13 @@ public class StorageService {
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
 
+  public void deleteObject(String key) {
+    String bucketName = awsProperties.getS3().getBucketName();
+    log.info("Deleting object: bucket={}, key={}", bucketName, key);
+    s3Client.deleteObject(r -> r.bucket(bucketName).key(key));
+    log.debug("Object deleted: key={}", key);
+  }
+
   public String generateDownloadUrl(String key, String fileName, Duration ttl) {
     String disposition = "attachment; filename=\"" + sanitizeFilename(fileName) + "\"";
     return buildPresignedGetUrl(key, ttl, disposition);
