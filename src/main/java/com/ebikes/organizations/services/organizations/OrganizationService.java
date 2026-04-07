@@ -1,5 +1,15 @@
 package com.ebikes.organizations.services.organizations;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
@@ -25,17 +35,9 @@ import com.ebikes.organizations.support.changes.ChangeApplier;
 import com.ebikes.organizations.support.changes.SnapshotCreator;
 import com.ebikes.organizations.support.database.FilterUtilities;
 import com.ebikes.organizations.support.makerchecker.MakerCheckerTemplate;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
