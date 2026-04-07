@@ -23,3 +23,11 @@ databaseChangeLog:
             dbms: postgresql
             path: fields/03-documents-add-expired-at.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: 04-organization-add-logo-key
+      author: MH
+      changes:
+        - sqlFile:
+            dbms: postgresql
+            path: fields/04-organization-add-logo-key.sql
+            relativeToChangelogFile: true
