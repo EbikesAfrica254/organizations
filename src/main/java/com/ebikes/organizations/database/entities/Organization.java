@@ -83,6 +83,9 @@ public class Organization extends AuditableEntity implements Auditable {
   @Column(name = "legal_name", nullable = false)
   @NotBlank private String legalName;
 
+  @Column(name = "logo_key", length = 500)
+  private String logoKey;
+
   @Column(name = "owner_id", nullable = false, length = 36)
   @NotBlank private String ownerId;
 
@@ -132,10 +135,6 @@ public class Organization extends AuditableEntity implements Auditable {
     this.activatedAt = OffsetDateTime.now(ZoneOffset.UTC);
   }
 
-  void addDocument(Document document) {
-    this.documents.add(document);
-  }
-
   public void deactivate(String reason) {
     if (this.status != OrganizationStatus.ACTIVE) {
       throw new BusinessRuleException(
@@ -145,16 +144,6 @@ public class Organization extends AuditableEntity implements Auditable {
     this.status = OrganizationStatus.DEACTIVATED;
     this.deactivatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     this.rejectionReason = reason;
-  }
-
-  public void updateComplianceStatus(@NotNull ComplianceStatus complianceStatus) {
-    if (complianceStatus == ComplianceStatus.SUSPENDED) {
-      throw new BusinessRuleException(
-          ResponseCode.INVALID_STATE,
-          "Compliance suspension requires explicit admin action and cannot be set"
-              + " programmatically");
-    }
-    this.complianceStatus = complianceStatus;
   }
 
   public void reject(String reason) {
@@ -178,6 +167,20 @@ public class Organization extends AuditableEntity implements Auditable {
     this.rejectionReason = null;
   }
 
+  public void updateComplianceStatus(@NotNull ComplianceStatus complianceStatus) {
+    if (complianceStatus == ComplianceStatus.SUSPENDED) {
+      throw new BusinessRuleException(
+          ResponseCode.INVALID_STATE,
+          "Compliance suspension requires explicit admin action and cannot be set"
+              + " programmatically");
+    }
+    this.complianceStatus = complianceStatus;
+  }
+
+  public void updateLogoKey(String logoKey) {
+    this.logoKey = logoKey;
+  }
+
   @Override
   public Map<String, String> toAuditMetadata() {
     return Map.of(
@@ -186,5 +189,9 @@ public class Organization extends AuditableEntity implements Auditable {
         "ownerId", ownerId,
         "registrationType", registrationType.name(),
         "status", status.name());
+  }
+
+  void addDocument(Document document) {
+    this.documents.add(document);
   }
 }
