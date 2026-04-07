@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import com.ebikes.organizations.database.entities.Organization;
-import com.ebikes.organizations.dtos.responses.organizations.OrganizationReference;
 
 @Repository
 public interface OrganizationRepository
@@ -16,5 +15,5 @@ public interface OrganizationRepository
 
   boolean existsByLegalName(String legalName);
 
-  List<OrganizationReference> findByIdIn(List<UUID> organizationIds);
+  List<Organization> findByIdIn(List<UUID> organizationIds);
 }

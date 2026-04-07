@@ -1,15 +1,5 @@
 package com.ebikes.organizations.services.organizations;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
@@ -32,13 +22,20 @@ import com.ebikes.organizations.services.documents.DocumentService;
 import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 import com.ebikes.organizations.support.changes.ChangeApplier;
-import com.ebikes.organizations.support.changes.ChangeDetector;
 import com.ebikes.organizations.support.changes.SnapshotCreator;
 import com.ebikes.organizations.support.database.FilterUtilities;
 import com.ebikes.organizations.support.makerchecker.MakerCheckerTemplate;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -51,7 +48,6 @@ public class OrganizationService {
   private final AuditTemplate auditTemplate;
   private final BranchService branchService;
   private final ChangeApplier changeApplier;
-  private final ChangeDetector changeDetector;
   private final DocumentService documentService;
   private final MakerCheckerTemplate makerCheckerTemplate;
   private final OrganizationMapper organizationMapper;
