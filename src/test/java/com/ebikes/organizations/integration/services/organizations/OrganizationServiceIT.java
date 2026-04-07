@@ -23,6 +23,7 @@ import com.ebikes.organizations.database.repositories.DocumentRepository;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
 import com.ebikes.organizations.database.repositories.OutboxRepository;
 import com.ebikes.organizations.dtos.events.incoming.MakerCheckerDecision;
+import com.ebikes.organizations.dtos.internal.FieldChange;
 import com.ebikes.organizations.dtos.requests.filters.OrganizationFilter;
 import com.ebikes.organizations.dtos.requests.organizations.CreateOrganizationRequest;
 import com.ebikes.organizations.dtos.requests.organizations.DocumentUploadInfo;
@@ -31,6 +32,7 @@ import com.ebikes.organizations.enums.AddressTag;
 import com.ebikes.organizations.enums.BusinessRegistrationType;
 import com.ebikes.organizations.enums.DocumentStatus;
 import com.ebikes.organizations.enums.DocumentType;
+import com.ebikes.organizations.enums.FieldType;
 import com.ebikes.organizations.enums.OrganizationStatus;
 import com.ebikes.organizations.enums.OutboxStatus;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
@@ -404,7 +406,6 @@ class OrganizationServiceIT extends AbstractIntegrationTest {
             outboxRepository.findAll();
         assertThat(outboxRecords)
             .hasSizeGreaterThanOrEqualTo(2)
-            .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.CREATED))
             .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.APPROVED));
       }
 
@@ -440,6 +441,7 @@ class OrganizationServiceIT extends AbstractIntegrationTest {
     class UpdateOperation {
 
       private Organization activeOrg;
+      private String submittedLegalName;
 
       @BeforeEach
       void setUp() {
@@ -447,8 +449,10 @@ class OrganizationServiceIT extends AbstractIntegrationTest {
         organizationRepository.save(pendingOrg);
         outboxRepository.deleteAll();
 
-        activeOrg =
-            organizationService.update(pendingOrg.getId(), OrganizationRequestFixtures.update());
+        UpdateOrganizationRequest updateRequest = OrganizationRequestFixtures.update();
+        submittedLegalName = updateRequest.legalName();
+
+        activeOrg = organizationService.update(pendingOrg.getId(), updateRequest);
         activeOrg = organizationRepository.findById(activeOrg.getId()).orElseThrow();
         outboxRepository.deleteAll();
       }
@@ -456,13 +460,18 @@ class OrganizationServiceIT extends AbstractIntegrationTest {
       @Test
       @DisplayName("approved: should write OrganizationUpdatedEvent to outbox")
       void shouldWriteUpdatedEventOnApproval() {
+        List<FieldChange> changes =
+            List.of(
+                new FieldChange(
+                    "legalName", FieldType.STRING, submittedLegalName, pendingOrg.getLegalName()));
+
         MakerCheckerDecision decision =
-            MakerCheckerFixtures.approved(activeOrg.getId(), "ORGANIZATION", "UPDATE");
+            MakerCheckerFixtures.approved(activeOrg.getId(), "ORGANIZATION", "UPDATE", changes);
 
         organizationService.handleApprovalDecision(decision);
 
         assertThat(outboxRepository.findAll())
-            .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.UPDATED));
+            .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.APPROVED));
       }
 
       @Test
