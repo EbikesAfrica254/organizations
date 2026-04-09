@@ -60,7 +60,6 @@ spring:
         type:
           json_format_mapper: com.ebikes.organizations.configurations.HibernateJsonFormatMapperConfiguration
 
-
   liquibase:
     change-log: classpath:database/changelog/changelog-main.yaml
     enabled: true
@@ -125,14 +124,14 @@ document:
 logging:
   level:
     root: INFO
-    com.ebikes: DEBUG
+    com.ebikes.organizations: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 management:
   endpoint:
     health:
-      show-details: ${ACTUATOR_HEALTH_DETAILS:always}
+      show-details: ${ACTUATOR_HEALTH_DETAILS:never}
   endpoints:
     web:
       exposure:
