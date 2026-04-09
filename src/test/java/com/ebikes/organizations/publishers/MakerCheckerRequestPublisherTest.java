@@ -50,6 +50,6 @@ class MakerCheckerRequestPublisherTest {
 
     publisher.publish(makerCheckerRequest, ROUTING_KEY);
 
-    verify(outboxService).save(ENTITY_TYPE, makerCheckerRequest, ROUTING_KEY);
+    verify(outboxService).publish(ENTITY_TYPE, makerCheckerRequest, ROUTING_KEY);
   }
 }
