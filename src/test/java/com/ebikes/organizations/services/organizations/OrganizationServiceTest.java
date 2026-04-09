@@ -30,6 +30,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
+import com.ebikes.organizations.constants.EventConstants.RoutingKeys;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.models.Address;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
@@ -46,9 +47,12 @@ import com.ebikes.organizations.enums.FieldType;
 import com.ebikes.organizations.enums.OrganizationStatus;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
 import com.ebikes.organizations.exceptions.ResourceNotFoundException;
+import com.ebikes.organizations.mappers.EventMapper;
 import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.branches.BranchService;
 import com.ebikes.organizations.services.documents.DocumentService;
+import com.ebikes.organizations.services.events.OutboxService;
+import com.ebikes.organizations.services.notifications.NotificationService;
 import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 import com.ebikes.organizations.support.audit.ThrowingRunnable;
@@ -74,9 +78,12 @@ class OrganizationServiceTest {
   @Mock private BranchService branchService;
   @Mock private ChangeApplier changeApplier;
   @Mock private DocumentService documentService;
+  @Mock private EventMapper eventMapper;
   @Mock private MakerCheckerTemplate makerCheckerTemplate;
+  @Mock private NotificationService notificationService;
   @Mock private OrganizationMapper organizationMapper;
-  @Mock private OrganizationRepository repository;
+  @Mock private OrganizationRepository organizationRepository;
+  @Mock private OutboxService outboxService;
   @Mock private SnapshotCreator snapshotCreator;
   @Mock private StorageService storageService;
 
@@ -91,9 +98,12 @@ class OrganizationServiceTest {
             branchService,
             changeApplier,
             documentService,
+            eventMapper,
             makerCheckerTemplate,
+            notificationService,
             organizationMapper,
-            repository,
+            organizationRepository,
+            outboxService,
             snapshotCreator,
             storageService);
 
@@ -119,15 +129,15 @@ class OrganizationServiceTest {
 
     @Test
     @DisplayName(
-        "should save organization, associate documents, re-fetch, publish maker-checker, return"
+        "should publish organization, associate documents, re-fetch, publish maker-checker, return"
             + " organization")
     void shouldCreateOrganizationSuccessfully() {
       List<FieldChange> snapshot =
           List.of(new FieldChange("legalName", FieldType.STRING, "Test Organization Ltd", null));
 
-      when(repository.existsByLegalName(any())).thenReturn(false);
-      when(repository.save(any(Organization.class))).thenReturn(organization);
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
+      when(organizationRepository.existsByLegalName(any())).thenReturn(false);
+      when(organizationRepository.save(any(Organization.class))).thenReturn(organization);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
       when(snapshotCreator.extractFields(organization)).thenReturn(snapshot);
 
       Organization result = service.create(OrganizationRequestFixtures.create());
@@ -142,7 +152,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("should throw DuplicateResourceException when legal name already exists")
     void shouldThrowWhenLegalNameDuplicate() {
-      when(repository.existsByLegalName(any())).thenReturn(true);
+      when(organizationRepository.existsByLegalName(any())).thenReturn(true);
 
       CreateOrganizationRequest request = OrganizationRequestFixtures.create();
       assertThatThrownBy(() -> service.create(request))
@@ -161,8 +171,8 @@ class OrganizationServiceTest {
       Organization active = OrganizationFixtures.active();
       ReflectionTestUtils.setField(active, "id", ORGANIZATION_ID);
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(active));
-      when(repository.save(any(Organization.class))).thenReturn(active);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(active));
+      when(organizationRepository.save(any(Organization.class))).thenReturn(active);
       stubAuditExecute(active);
 
       Organization result = service.deactivate(ORGANIZATION_ID, "test reason");
@@ -179,7 +189,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("should throw ResourceNotFoundException when organization not found")
     void shouldThrowWhenNotFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.deactivate(ORGANIZATION_ID, "reason"))
           .isInstanceOf(ResourceNotFoundException.class);
@@ -193,7 +203,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("should return organization when found")
     void shouldReturnOrganizationWhenFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
 
       assertThat(service.findById(ORGANIZATION_ID)).isEqualTo(organization);
     }
@@ -201,7 +211,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("should throw ResourceNotFoundException when not found")
     void shouldThrowWhenNotFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.findById(ORGANIZATION_ID))
           .isInstanceOf(ResourceNotFoundException.class);
@@ -223,7 +233,7 @@ class OrganizationServiceTest {
           new OrganizationReference(
               ORGANIZATION_ID, null, organization.getDisplayName(), presignedUrl);
 
-      when(repository.findByIdIn(ids)).thenReturn(List.of(organization));
+      when(organizationRepository.findByIdIn(ids)).thenReturn(List.of(organization));
       when(storageService.generatePreviewUrl(eq(logoKey), any())).thenReturn(presignedUrl);
       when(organizationMapper.toReference(organization, null, presignedUrl)).thenReturn(reference);
 
@@ -238,7 +248,7 @@ class OrganizationServiceTest {
       OrganizationReference reference =
           new OrganizationReference(ORGANIZATION_ID, null, organization.getDisplayName(), null);
 
-      when(repository.findByIdIn(ids)).thenReturn(List.of(organization));
+      when(organizationRepository.findByIdIn(ids)).thenReturn(List.of(organization));
       when(organizationMapper.toReference(organization, null, null)).thenReturn(reference);
 
       assertThat(service.findReferencesByIds(ids)).containsExactly(reference);
@@ -264,7 +274,7 @@ class OrganizationServiceTest {
           new OrganizationReference(
               ORGANIZATION_ID, formattedAddress, organization.getDisplayName(), null);
 
-      when(repository.findByIdIn(ids)).thenReturn(List.of(organization));
+      when(organizationRepository.findByIdIn(ids)).thenReturn(List.of(organization));
       when(organizationMapper.toReference(organization, formattedAddress, null))
           .thenReturn(reference);
 
@@ -278,7 +288,7 @@ class OrganizationServiceTest {
       OrganizationReference reference =
           new OrganizationReference(ORGANIZATION_ID, null, organization.getDisplayName(), null);
 
-      when(repository.findByIdIn(ids)).thenReturn(List.of(organization));
+      when(organizationRepository.findByIdIn(ids)).thenReturn(List.of(organization));
       when(organizationMapper.toReference(organization, null, null)).thenReturn(reference);
 
       service.findReferencesByIds(ids);
@@ -293,7 +303,7 @@ class OrganizationServiceTest {
       OrganizationReference reference =
           new OrganizationReference(ORGANIZATION_ID, null, organization.getDisplayName(), null);
 
-      when(repository.findByIdIn(ids)).thenReturn(List.of(organization));
+      when(organizationRepository.findByIdIn(ids)).thenReturn(List.of(organization));
       when(organizationMapper.toReference(organization, null, null)).thenReturn(reference);
 
       assertThat(service.findReferencesByIds(ids)).containsExactly(reference);
@@ -306,7 +316,8 @@ class OrganizationServiceTest {
 
     @Test
     @DisplayName(
-        "CREATE APPROVED — validates documents, activates, approves, creates default branch")
+        "CREATE APPROVED → validates documents, activates, approves, creates default branch, sends"
+            + " welcome, publishes created event")
     @SuppressWarnings("unchecked")
     void shouldHandleCreateApproved() {
       Organization pending = OrganizationFixtures.pendingApproval();
@@ -314,8 +325,8 @@ class OrganizationServiceTest {
       Organization approved = OrganizationFixtures.active();
       ReflectionTestUtils.setField(approved, "id", ORGANIZATION_ID);
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
-      when(repository.save(any(Organization.class))).thenReturn(approved);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
+      when(organizationRepository.save(any(Organization.class))).thenReturn(approved);
       stubAuditExecute(approved);
 
       service.handleApprovalDecision(
@@ -332,6 +343,12 @@ class OrganizationServiceTest {
               eq(DomainEvents.Organization.APPROVED),
               any(ThrowingSupplier.class));
       verify(branchService).createDefaultBranch(approved);
+      verify(notificationService).sendOrganizationWelcome(approved);
+      verify(outboxService)
+          .publish(
+              eq(DomainEvents.Organization.CREATED),
+              any(),
+              eq(RoutingKeys.ORGANIZATIONS_ORGANIZATION_CREATED));
     }
 
     @Test
@@ -343,8 +360,8 @@ class OrganizationServiceTest {
       Organization rejected = OrganizationFixtures.rejected("not compliant");
       ReflectionTestUtils.setField(rejected, "id", ORGANIZATION_ID);
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
-      when(repository.save(any(Organization.class))).thenReturn(rejected);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
+      when(organizationRepository.save(any(Organization.class))).thenReturn(rejected);
       stubAuditExecute(rejected);
 
       service.handleApprovalDecision(
@@ -371,8 +388,8 @@ class OrganizationServiceTest {
       List<FieldChange> changes =
           List.of(new FieldChange("legalName", FieldType.STRING, "New Name Ltd", "Old Name Ltd"));
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
-      when(repository.save(any(Organization.class))).thenReturn(approved);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
+      when(organizationRepository.save(any(Organization.class))).thenReturn(approved);
       stubAuditExecute(approved);
 
       service.handleApprovalDecision(
@@ -396,8 +413,8 @@ class OrganizationServiceTest {
       Organization rejected = OrganizationFixtures.rejected("invalid documents");
       ReflectionTestUtils.setField(rejected, "id", ORGANIZATION_ID);
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
-      when(repository.save(any(Organization.class))).thenReturn(rejected);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(pending));
+      when(organizationRepository.save(any(Organization.class))).thenReturn(rejected);
       stubAuditExecute(rejected);
 
       service.handleApprovalDecision(
@@ -416,7 +433,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("unknown operation — throws IllegalArgumentException")
     void shouldThrowOnUnknownOperation() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
 
       MakerCheckerDecision unknown =
           MakerCheckerFixtures.approved(ORGANIZATION_ID, ENTITY_TYPE, "UNKNOWN_OP");
@@ -428,7 +445,7 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("organization not found — throws ResourceNotFoundException")
     void shouldThrowWhenOrganizationNotFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
 
       MakerCheckerDecision decision =
           MakerCheckerFixtures.approved(ORGANIZATION_ID, ENTITY_TYPE, "CREATE");
@@ -449,12 +466,13 @@ class OrganizationServiceTest {
       ReflectionTestUtils.setField(active, "id", ORGANIZATION_ID);
       Page<Organization> page = new PageImpl<>(List.of(active));
 
-      when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+      when(organizationRepository.findAll(any(Specification.class), any(Pageable.class)))
+          .thenReturn(page);
 
       Page<Organization> result = service.search(new OrganizationFilter());
 
       assertThat(result.getContent()).containsExactly(active);
-      verify(repository).findAll(any(Specification.class), any(Pageable.class));
+      verify(organizationRepository).findAll(any(Specification.class), any(Pageable.class));
     }
   }
 
@@ -464,7 +482,7 @@ class OrganizationServiceTest {
 
     @Test
     @DisplayName(
-        "should detect changes, resubmit, save, publish maker-checker, return organization")
+        "should detect changes, resubmit, publish, publish maker-checker, return organization")
     void shouldUpdateOrganizationSuccessfully() {
       Organization existing = OrganizationFixtures.rejected("old rejection");
       ReflectionTestUtils.setField(existing, "id", ORGANIZATION_ID);
@@ -476,9 +494,9 @@ class OrganizationServiceTest {
 
       UpdateOrganizationRequest request = OrganizationRequestFixtures.update("New Legal Name Ltd");
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
-      when(repository.existsByLegalName(request.legalName())).thenReturn(false);
-      when(repository.save(any(Organization.class))).thenReturn(existing);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
+      when(organizationRepository.existsByLegalName(request.legalName())).thenReturn(false);
+      when(organizationRepository.save(any(Organization.class))).thenReturn(existing);
       when(snapshotCreator.extractChanges(any(), any())).thenReturn(changes);
 
       Organization result = service.update(ORGANIZATION_ID, request);
@@ -495,20 +513,20 @@ class OrganizationServiceTest {
 
       UpdateOrganizationRequest request = OrganizationRequestFixtures.update();
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
-      when(repository.existsByLegalName(anyString())).thenReturn(false);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
+      when(organizationRepository.existsByLegalName(anyString())).thenReturn(false);
 
       Organization result = service.update(ORGANIZATION_ID, request);
 
       assertThat(result).isEqualTo(existing);
       verify(makerCheckerTemplate, never()).publish(any(), any(), any(), anyList());
-      verify(repository, never()).save(any());
+      verify(organizationRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("should throw ResourceNotFoundException when organization not found")
     void shouldThrowWhenNotFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
 
       UpdateOrganizationRequest request = OrganizationRequestFixtures.update();
 
@@ -525,8 +543,8 @@ class OrganizationServiceTest {
       UpdateOrganizationRequest request =
           OrganizationRequestFixtures.update("Conflicting Name Ltd");
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
-      when(repository.existsByLegalName(request.legalName())).thenReturn(true);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(existing));
+      when(organizationRepository.existsByLegalName(request.legalName())).thenReturn(true);
 
       assertThatThrownBy(() -> service.update(ORGANIZATION_ID, request))
           .isInstanceOf(DuplicateResourceException.class);
@@ -623,39 +641,39 @@ class OrganizationServiceTest {
     @Test
     @DisplayName("should throw ResourceNotFoundException when org does not exist")
     void shouldThrowWhenOrgNotFound() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.updateLogoKey(ORGANIZATION_ID, "logos/new/logo"))
           .isInstanceOf(ResourceNotFoundException.class);
 
-      verify(repository, never()).save(any());
+      verify(organizationRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("should save new key and return null when no previous key")
+    @DisplayName("should publish new key and return null when no previous key")
     void shouldSaveNewKeyAndReturnNullWhenNoPreviousKey() {
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
-      when(repository.save(organization)).thenReturn(organization);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
+      when(organizationRepository.save(organization)).thenReturn(organization);
 
       String previous = service.updateLogoKey(ORGANIZATION_ID, "logos/new/logo");
 
       assertThat(previous).isNull();
-      verify(repository).save(organization);
+      verify(organizationRepository).save(organization);
     }
 
     @Test
-    @DisplayName("should save new key and return previous key when one existed")
+    @DisplayName("should publish new key and return previous key when one existed")
     void shouldSaveNewKeyAndReturnPreviousKey() {
       String existingKey = "logos/old/logo";
       ReflectionTestUtils.setField(organization, "logoKey", existingKey);
 
-      when(repository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
-      when(repository.save(organization)).thenReturn(organization);
+      when(organizationRepository.findById(ORGANIZATION_ID)).thenReturn(Optional.of(organization));
+      when(organizationRepository.save(organization)).thenReturn(organization);
 
       String previous = service.updateLogoKey(ORGANIZATION_ID, "logos/new/logo");
 
       assertThat(previous).isEqualTo(existingKey);
-      verify(repository).save(organization);
+      verify(organizationRepository).save(organization);
     }
   }
 }
