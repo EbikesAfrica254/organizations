@@ -56,7 +56,7 @@ public class OutboxService {
   }
 
   @Transactional
-  public void save(String eventType, Object payload, String routingKey) {
+  public void publish(String eventType, Object payload, String routingKey) {
     Outbox outbox =
         Outbox.builder().eventType(eventType).payload(payload).routingKey(routingKey).build();
 

@@ -121,7 +121,7 @@ class DocumentServiceTest {
   class ActivateDocuments {
 
     @Test
-    @DisplayName("should activate all uploaded documents and save")
+    @DisplayName("should activate all uploaded documents and publish")
     void shouldActivateAllUploadedDocumentsAndSave() {
       Document uploaded = DocumentFixtures.uploaded(organization);
       when(documentRepository.findByOrganizationIdAndStatus(
@@ -152,7 +152,7 @@ class DocumentServiceTest {
   class Archive {
 
     @Test
-    @DisplayName("should archive all stale uploaded documents and save")
+    @DisplayName("should archive all stale uploaded documents and publish")
     @SuppressWarnings("unchecked")
     void shouldArchiveAllDocumentsAndSave() {
       Document uploaded = DocumentFixtures.uploaded(organization);
@@ -186,7 +186,7 @@ class DocumentServiceTest {
   class Expire {
 
     @Test
-    @DisplayName("should expire all documents and save")
+    @DisplayName("should expire all documents and publish")
     @SuppressWarnings("unchecked")
     void shouldExpireAllDocumentsAndSave() {
       Document active = DocumentFixtures.active(organization);
@@ -221,7 +221,7 @@ class DocumentServiceTest {
   class AssociateWithOrganization {
 
     @Test
-    @DisplayName("should associate documents and save")
+    @DisplayName("should associate documents and publish")
     void shouldAssociateDocumentsAndSave() {
       Document document = DocumentFixtures.pending(organization);
       when(documentRepository.findAllByFileStorageUrlIn(List.of(STORAGE_KEY)))
@@ -355,7 +355,7 @@ class DocumentServiceTest {
   class ConfirmReplacement {
 
     @Test
-    @DisplayName("should mark replacement document as uploaded and save")
+    @DisplayName("should mark replacement document as uploaded and publish")
     void shouldMarkUploadedAndSave() {
       Document original = DocumentFixtures.active(organization);
       Document replacement = DocumentFixtures.pending(organization);

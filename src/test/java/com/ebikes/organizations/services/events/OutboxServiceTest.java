@@ -65,7 +65,7 @@ class OutboxServiceTest {
   class Retry {
 
     @Test
-    @DisplayName("should reset outbox to PENDING and save")
+    @DisplayName("should reset outbox to PENDING and publish")
     void shouldResetToPendingAndSave() {
       Outbox outbox = OutboxFixtures.failed("ORGANIZATION_CREATED");
       when(repository.findById(OUTBOX_ID)).thenReturn(Optional.of(outbox));
@@ -91,7 +91,7 @@ class OutboxServiceTest {
   class RetryAllFailed {
 
     @Test
-    @DisplayName("should reset all failed events to PENDING and save")
+    @DisplayName("should reset all failed events to PENDING and publish")
     void shouldResetAllFailedAndSave() {
       Outbox first = OutboxFixtures.failed("ORGANIZATION_CREATED");
       Outbox second = OutboxFixtures.failed("USER_UPDATED");
@@ -119,13 +119,13 @@ class OutboxServiceTest {
   }
 
   @Nested
-  @DisplayName("save")
+  @DisplayName("publish")
   class Save {
 
     @Test
     @DisplayName("should build and persist outbox with correct fields")
     void shouldBuildAndPersistOutbox() {
-      service.save(
+      service.publish(
           "ORGANIZATION_CREATED", EventFixtures.organizationCreatedEvent(), "test.routing.key");
 
       verify(repository).save(any(Outbox.class));

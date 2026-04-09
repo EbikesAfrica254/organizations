@@ -6,6 +6,19 @@ public final class EventConstants {
 
   private EventConstants() {}
 
+  public static final class RoutingKeys {
+
+    private RoutingKeys() {}
+
+    public static final String NOTIFICATIONS_EMAIL = "notifications.email";
+    public static final String NOTIFICATIONS_SMS = "notifications.sms";
+    public static final String NOTIFICATIONS_SSE = "notifications.sse";
+    public static final String NOTIFICATIONS_WHATSAPP = "notifications.whatsapp";
+
+    public static final String ORGANIZATIONS_ORGANIZATION_CREATED =
+        Source.ORGANIZATIONS + ".organization.created";
+  }
+
   public static final class Source {
 
     private Source() {}
@@ -61,14 +74,5 @@ public final class EventConstants {
 
     // inbound — maker-checker decisions arrive as maker-checker.organization.<outcome>
     public static final String MAKER_CHECKER_ORGANIZATION = "maker-checker.organization";
-  }
-
-  public static final class MessageHeaders {
-
-    private MessageHeaders() {}
-
-    public static final String EVENT_TYPE = "eventType";
-    public static final String OUTBOX_ID = "outboxId";
-    public static final String ROUTING_KEY = "routingKey";
   }
 }

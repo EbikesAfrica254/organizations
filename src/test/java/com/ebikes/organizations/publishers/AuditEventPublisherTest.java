@@ -54,7 +54,7 @@ class AuditEventPublisherTest {
 
       publisher.publishSuccess(auditEvent, ROUTING_KEY);
 
-      verify(outboxService).save(EVENT_TYPE, auditEvent, ROUTING_KEY);
+      verify(outboxService).publish(EVENT_TYPE, auditEvent, ROUTING_KEY);
     }
   }
 
@@ -69,7 +69,7 @@ class AuditEventPublisherTest {
 
       publisher.publishFailure(auditEvent, ROUTING_KEY);
 
-      verify(outboxService).save(EVENT_TYPE, auditEvent, ROUTING_KEY);
+      verify(outboxService).publish(EVENT_TYPE, auditEvent, ROUTING_KEY);
     }
   }
 }

@@ -52,7 +52,7 @@ class BranchAddressServiceTest {
   class Create {
 
     @Test
-    @DisplayName("should build BranchAddress with BRANCH_LOCATION tag from request and save")
+    @DisplayName("should build BranchAddress with BRANCH_LOCATION tag from request and publish")
     void shouldCreateBranchAddressFromRequest() {
       BranchAddressRequest request =
           new BranchAddressRequest("Nairobi", "Kenya", null, null, "00100", "123 Main St");
@@ -78,7 +78,7 @@ class BranchAddressServiceTest {
   class CreateFromOrganizationAddress {
 
     @Test
-    @DisplayName("should map Address fields to BranchAddress with BRANCH_LOCATION tag and save")
+    @DisplayName("should map Address fields to BranchAddress with BRANCH_LOCATION tag and publish")
     void shouldCreateBranchAddressFromOrganizationAddress() {
       Address address =
           new Address(
@@ -149,7 +149,7 @@ class BranchAddressServiceTest {
   class Update {
 
     @Test
-    @DisplayName("should find existing address, call update, and save")
+    @DisplayName("should find existing address, call update, and publish")
     void shouldUpdateBranchAddress() {
       BranchAddressRequest request =
           new BranchAddressRequest("Mombasa", "Kenya", null, null, "80100", "456 New St");

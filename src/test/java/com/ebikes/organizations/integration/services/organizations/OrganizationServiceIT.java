@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
+import com.ebikes.organizations.constants.EventConstants.RoutingKeys;
 import com.ebikes.organizations.database.entities.Document;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.models.Address;
@@ -406,7 +407,12 @@ class OrganizationServiceIT extends AbstractIntegrationTest {
             outboxRepository.findAll();
         assertThat(outboxRecords)
             .hasSizeGreaterThanOrEqualTo(2)
-            .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.APPROVED));
+            .anyMatch(o -> o.getEventType().equals(DomainEvents.Organization.APPROVED))
+            .anyMatch(
+                o ->
+                    o.getEventType().equals(DomainEvents.Organization.CREATED)
+                        && o.getRoutingKey()
+                            .equals(RoutingKeys.ORGANIZATIONS_ORGANIZATION_CREATED));
       }
 
       @Test

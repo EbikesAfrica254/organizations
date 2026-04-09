@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ebikes.organizations.constants.EventConstants.DomainEvents;
+import com.ebikes.organizations.constants.EventConstants.RoutingKeys;
+import com.ebikes.organizations.constants.EventConstants.Source;
 import com.ebikes.organizations.database.entities.Organization;
 import com.ebikes.organizations.database.repositories.OrganizationRepository;
 import com.ebikes.organizations.database.specifications.OrganizationSpecifications;
@@ -26,9 +28,12 @@ import com.ebikes.organizations.enums.ComplianceStatus;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.DuplicateResourceException;
 import com.ebikes.organizations.exceptions.ResourceNotFoundException;
+import com.ebikes.organizations.mappers.EventMapper;
 import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.branches.BranchService;
 import com.ebikes.organizations.services.documents.DocumentService;
+import com.ebikes.organizations.services.events.OutboxService;
+import com.ebikes.organizations.services.notifications.NotificationService;
 import com.ebikes.organizations.services.storage.StorageService;
 import com.ebikes.organizations.support.audit.AuditTemplate;
 import com.ebikes.organizations.support.changes.ChangeApplier;
@@ -51,9 +56,12 @@ public class OrganizationService {
   private final BranchService branchService;
   private final ChangeApplier changeApplier;
   private final DocumentService documentService;
+  private final EventMapper eventMapper;
   private final MakerCheckerTemplate makerCheckerTemplate;
+  private final NotificationService notificationService;
   private final OrganizationMapper organizationMapper;
   private final OrganizationRepository repository;
+  private final OutboxService outboxService;
   private final SnapshotCreator snapshotCreator;
   private final StorageService storageService;
 
@@ -270,6 +278,11 @@ public class OrganizationService {
             () -> repository.save(organization));
 
     branchService.createDefaultBranch(approved);
+    notificationService.sendOrganizationWelcome(approved);
+    outboxService.publish(
+        DomainEvents.Organization.CREATED,
+        eventMapper.toOrganizationCreatedEvent(approved, Source.serviceReference()),
+        RoutingKeys.ORGANIZATIONS_ORGANIZATION_CREATED);
     log.info(
         "Organization creation approved and activated: organizationId={}", organization.getId());
   }

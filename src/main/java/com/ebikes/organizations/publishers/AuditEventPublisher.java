@@ -17,10 +17,10 @@ public class AuditEventPublisher {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void publishFailure(AuditEvent event, String routingKey) {
-    outboxService.save(event.eventType(), event, routingKey);
+    outboxService.publish(event.eventType(), event, routingKey);
   }
 
   public void publishSuccess(AuditEvent event, String routingKey) {
-    outboxService.save(event.eventType(), event, routingKey);
+    outboxService.publish(event.eventType(), event, routingKey);
   }
 }

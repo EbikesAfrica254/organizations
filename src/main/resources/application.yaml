@@ -138,6 +138,9 @@ management:
       exposure:
         include: health,info,metrics,prometheus
 
+notifications:
+  enabled: ${NOTIFICATIONS_ENABLED}
+
 security:
   public-endpoints:
     - /actuator/health

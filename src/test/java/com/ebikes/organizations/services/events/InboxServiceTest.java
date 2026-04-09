@@ -43,7 +43,7 @@ class InboxServiceTest {
   class MarkProcessed {
 
     @Test
-    @DisplayName("should mark inbox as processed and save")
+    @DisplayName("should mark inbox as processed and publish")
     void shouldMarkProcessedAndSave() {
       Inbox inbox = new Inbox(EVENT_TYPE, SERVICE_REFERENCE, SOURCE_CONTEXT);
       when(inboxRepository.findById(SERVICE_REFERENCE)).thenReturn(Optional.of(inbox));
@@ -70,7 +70,7 @@ class InboxServiceTest {
   class Receive {
 
     @Test
-    @DisplayName("should save inbox record and return true")
+    @DisplayName("should publish inbox record and return true")
     void shouldSaveAndReturnTrue() {
       when(inboxRepository.save(any(Inbox.class)))
           .thenAnswer(invocation -> invocation.getArgument(0));
