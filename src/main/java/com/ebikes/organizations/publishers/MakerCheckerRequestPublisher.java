@@ -22,7 +22,7 @@ public class MakerCheckerRequestPublisher {
         request.entityId(),
         request.makerId());
 
-    outboxService.save(request.entityType(), request, routingKey);
+    outboxService.publish(request.entityType(), request, routingKey);
 
     log.info(
         "Maker-checker request queued: entityType={}, entityId={}",
