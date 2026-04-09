@@ -52,7 +52,7 @@ class OutboxEventProcessorTest {
   class WhenSendSucceeds {
 
     @Test
-    @DisplayName("should mark outbox as SENT and save")
+    @DisplayName("should mark outbox as SENT and publish")
     void shouldMarkSentAndSave() {
       Outbox outbox = OutboxFixtures.pending(EVENT_TYPE);
       when(streamBridge.send(eq(BINDING_NAME), any())).thenReturn(true);
@@ -80,7 +80,7 @@ class OutboxEventProcessorTest {
   class WhenSendReturnsFalse {
 
     @Test
-    @DisplayName("should mark outbox as FAILED and save")
+    @DisplayName("should mark outbox as FAILED and publish")
     void shouldMarkFailedAndSave() {
       Outbox outbox = OutboxFixtures.pending(EVENT_TYPE);
       when(streamBridge.send(eq(BINDING_NAME), any())).thenReturn(false);
@@ -111,7 +111,7 @@ class OutboxEventProcessorTest {
   class WhenSendThrows {
 
     @Test
-    @DisplayName("should mark outbox as FAILED and save")
+    @DisplayName("should mark outbox as FAILED and publish")
     void shouldMarkFailedAndSave() {
       Outbox outbox = OutboxFixtures.pending(EVENT_TYPE);
       doThrow(new RuntimeException("broker unavailable"))
