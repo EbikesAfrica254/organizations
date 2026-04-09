@@ -78,4 +78,15 @@
         <Bug pattern="SE_BAD_FIELD"/>
     </Match>
 
+    <!--
+      NP_NULL_ON_SOME_PATH: excluded for MapStruct-generated mapper implementations.
+      SpotBugs flags null dereference paths introduced by MapStruct's defensive null
+      checks on source parameters. The parameter is annotated @NotNull and guaranteed
+      non-null at all call sites; the generated branches are unreachable in practice.
+    -->
+    <Match>
+        <Package name="~com\.ebikes\.organizations\.mappers"/>
+        <Bug pattern="NP_NULL_ON_SOME_PATH"/>
+    </Match>
+
 </FindBugsFilter>
