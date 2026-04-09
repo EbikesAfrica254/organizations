@@ -1,4 +1,5 @@
-FROM eclipse-temurin:21-jre-alpine@sha256:9f1de3e01a3c43e2f158abf408ec761813da639961bde93427c1ea42a619a09b
+# eclipse-temurin 21-jre-alpine as of 2026-04-09
+FROM eclipse-temurin@sha256:6ad8ed080d9be96b61438ec3ce99388e294af216ed57356000c06070e85c5d5d
 
 RUN apk add --no-cache shadow tzdata
 
@@ -9,10 +10,11 @@ RUN addgroup -S appgroup && \
     mkdir -p /app/logs && \
     chown -R appuser:appgroup /app
 
-COPY --chown=appuser:appgroup dependencies/ ./
-COPY --chown=appuser:appgroup spring-boot-loader/ ./
-COPY --chown=appuser:appgroup snapshot-dependencies*/ ./
-COPY --chown=appuser:appgroup application/ ./
+COPY --chown=appuser:appgroup --chmod=550 dependencies/ ./
+COPY --chown=appuser:appgroup --chmod=550 spring-boot-loader/ ./
+COPY --chown=appuser:appgroup --chmod=550 snapshot-dependencies*/ ./
+COPY --chown=appuser:appgroup --chmod=550 application/ ./
+
 
 ENV TZ=Africa/Nairobi
 
@@ -27,7 +29,7 @@ ARG VERSION
 ARG BUILD_DATE
 ARG VCS_REF
 
-LABEL org.opencontainers.image.title="eBikes Africa organizations service"
+LABEL org.opencontainers.image.title="Ebikes Africa organizations service"
 LABEL org.opencontainers.image.description=""
 LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
