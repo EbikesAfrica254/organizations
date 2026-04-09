@@ -160,6 +160,9 @@ management:
       exposure:
         include: health,info,metrics,prometheus
 
+notifications:
+  enabled: false
+
 security:
   public-endpoints:
     - /actuator/health
