@@ -1,12 +1,12 @@
 package com.ebikes.organizations.services.notifications;
 
-import com.ebikes.organizations.database.entities.Organization;
-import com.ebikes.organizations.dtos.events.outgoing.NotificationRequest;
-import com.ebikes.organizations.enums.ChannelType;
-import com.ebikes.organizations.mappers.NotificationMapper;
-import com.ebikes.organizations.publishers.NotificationEventPublisher;
-import com.ebikes.organizations.support.fixtures.OrganizationFixtures;
-import com.ebikes.organizations.support.fixtures.SecurityFixtures;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.ebikes.organizations.database.entities.Organization;
+import com.ebikes.organizations.dtos.events.outgoing.NotificationRequest;
+import com.ebikes.organizations.enums.ChannelType;
+import com.ebikes.organizations.mappers.NotificationMapper;
+import com.ebikes.organizations.publishers.NotificationEventPublisher;
+import com.ebikes.organizations.support.fixtures.OrganizationFixtures;
+import com.ebikes.organizations.support.fixtures.SecurityFixtures;
 
 @DisplayName("NotificationService")
 @ExtendWith(MockitoExtension.class)
