@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ebikes.organizations.database.entities.Organization;
-import com.ebikes.organizations.dtos.internal.UploadUrlData;
 import com.ebikes.organizations.dtos.requests.filters.OrganizationFilter;
 import com.ebikes.organizations.dtos.requests.organizations.CreateOrganizationRequest;
 import com.ebikes.organizations.dtos.requests.organizations.DeactivateOrganizationRequest;
@@ -32,6 +31,7 @@ import com.ebikes.organizations.dtos.responses.api.PaginatedResponse;
 import com.ebikes.organizations.dtos.responses.api.SuccessResponse;
 import com.ebikes.organizations.dtos.responses.documents.DocumentPreviewResponse;
 import com.ebikes.organizations.dtos.responses.documents.DocumentSummaryResponse;
+import com.ebikes.organizations.dtos.responses.organizations.ImageUploadInitiationResponse;
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationReference;
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationResponse;
 import com.ebikes.organizations.dtos.responses.organizations.OrganizationSummaryResponse;
@@ -101,11 +101,11 @@ public class OrganizationController {
 
   @PreAuthorize("hasAnyAuthority('ORGANIZATION_ADMIN', 'SYSTEM_ADMIN')")
   @PostMapping("/{id}/logo/upload-url")
-  public ResponseEntity<SuccessResponse<UploadUrlData>> generateLogoUploadUrl(
+  public ResponseEntity<SuccessResponse<ImageUploadInitiationResponse>> generateLogoUploadUrl(
       @PathVariable UUID id) {
-    UploadUrlData uploadUrlData = imageService.generateImageUploadUrl(id);
+    ImageUploadInitiationResponse response = imageService.generateImageUploadUrl(id);
     return ResponseEntity.ok(
-        SuccessResponse.of(uploadUrlData, "Logo upload URL generated successfully"));
+        SuccessResponse.of(response, "Logo upload URL generated successfully"));
   }
 
   @PreAuthorize("hasAnyAuthority('ORGANIZATION_ADMIN', 'SYSTEM_ADMIN')")
