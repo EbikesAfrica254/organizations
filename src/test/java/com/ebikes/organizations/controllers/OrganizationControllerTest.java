@@ -27,8 +27,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.ebikes.organizations.dtos.internal.UploadUrlData;
 import com.ebikes.organizations.dtos.requests.organizations.ImageUploadConfirmationRequest;
+import com.ebikes.organizations.dtos.responses.organizations.ImageUploadInitiationResponse;
 import com.ebikes.organizations.enums.UserRole;
 import com.ebikes.organizations.mappers.OrganizationMapper;
 import com.ebikes.organizations.services.documents.DocumentService;
@@ -64,7 +64,7 @@ class OrganizationControllerTest extends AbstractControllerTest {
   class ConfirmLogoUpload {
 
     private ImageUploadConfirmationRequest validRequest() {
-      return new ImageUploadConfirmationRequest(102400L, "image/jpeg");
+      return new ImageUploadConfirmationRequest(102400L, "test-key", "image/jpeg");
     }
 
     @Test
@@ -395,10 +395,13 @@ class OrganizationControllerTest extends AbstractControllerTest {
     @Test
     @DisplayName("should return 200 when user is ORGANIZATION_ADMIN")
     void shouldReturn200WhenOrganizationAdmin() throws Exception {
-      UploadUrlData uploadUrlData =
-          new UploadUrlData(
-              "https://s3.example.com/upload", Map.of(), Instant.now().plusSeconds(3600));
-      when(imageService.generateImageUploadUrl(ORG_ID)).thenReturn(uploadUrlData);
+      ImageUploadInitiationResponse response =
+          new ImageUploadInitiationResponse(
+              Instant.now().plusSeconds(3600),
+              "test-key",
+              Map.of(),
+              "https://s3.example.com/upload");
+      when(imageService.generateImageUploadUrl(ORG_ID)).thenReturn(response);
 
       mockMvc
           .perform(
@@ -412,9 +415,12 @@ class OrganizationControllerTest extends AbstractControllerTest {
     @Test
     @DisplayName("should return 200 when user is SYSTEM_ADMIN")
     void shouldReturn200WhenSystemAdmin() throws Exception {
-      UploadUrlData uploadUrlData =
-          new UploadUrlData(
-              "https://s3.example.com/upload", Map.of(), Instant.now().plusSeconds(3600));
+      ImageUploadInitiationResponse uploadUrlData =
+          new ImageUploadInitiationResponse(
+              Instant.now().plusSeconds(3600),
+              "test-key",
+              Map.of(),
+              "https://s3.example.com/upload");
       when(imageService.generateImageUploadUrl(ORG_ID)).thenReturn(uploadUrlData);
 
       mockMvc
