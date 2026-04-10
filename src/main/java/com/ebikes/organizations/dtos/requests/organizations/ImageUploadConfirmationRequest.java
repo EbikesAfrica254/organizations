@@ -6,4 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record ImageUploadConfirmationRequest(
-    @NotNull @Min(value = 1) Long fileSizeBytes, @NotBlank @Size(max = 100) String mimeType) {}
+    @NotNull @Min(value = 1) Long fileSizeBytes,
+    @NotBlank @Size(max = 500) String logoKey,
+    @NotBlank @Size(max = 100) String mimeType) {}

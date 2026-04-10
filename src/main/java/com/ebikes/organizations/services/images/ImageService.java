@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ebikes.organizations.dtos.internal.UploadUrlData;
 import com.ebikes.organizations.dtos.requests.organizations.ImageUploadConfirmationRequest;
+import com.ebikes.organizations.dtos.responses.organizations.ImageUploadInitiationResponse;
 import com.ebikes.organizations.enums.ResponseCode;
 import com.ebikes.organizations.exceptions.ValidationException;
 import com.ebikes.organizations.services.organizations.OrganizationService;
@@ -31,18 +32,20 @@ public class ImageService {
   private final OrganizationService organizationService;
   private final StorageService storageService;
 
-  public UploadUrlData generateImageUploadUrl(UUID organizationId) {
+  public ImageUploadInitiationResponse generateImageUploadUrl(UUID organizationId) {
     organizationService.requireById(organizationId);
     String key = buildImageKey(organizationId);
     log.info("Generating logo upload URL: organizationId={}, key={}", organizationId, key);
-    return storageService.generateUploadUrl(key, null, null, null);
+    UploadUrlData uploadUrlData = storageService.generateUploadUrl(key, null, null, null);
+    return new ImageUploadInitiationResponse(
+        uploadUrlData.expiryTime(), key, uploadUrlData.headers(), uploadUrlData.url());
   }
 
   @Transactional
   public void confirmImageUpload(UUID organizationId, ImageUploadConfirmationRequest request) {
     validateMimeType(request.mimeType());
 
-    String key = buildImageKey(organizationId);
+    String key = request.logoKey();
 
     var metadata = storageService.getStoredFileMetadata(key);
     if (!metadata.exists()) {
@@ -79,7 +82,7 @@ public class ImageService {
   }
 
   private String buildImageKey(UUID organizationId) {
-    return LOGO_KEY_PREFIX + organizationId + LOGO_KEY_SUFFIX;
+    return LOGO_KEY_PREFIX + organizationId + LOGO_KEY_SUFFIX + "-" + UUID.randomUUID();
   }
 
   private void validateMimeType(String mimeType) {
