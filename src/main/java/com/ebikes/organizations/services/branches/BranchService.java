@@ -89,6 +89,7 @@ public class BranchService {
     Branch branch =
         Branch.builder()
             .branchName("MAIN")
+            .createdBy(organization.getCreatedBy())
             .displayName(organization.getDisplayName() + " - Main Branch")
             .email(organization.getEmail())
             .operatingHours(List.of())
