@@ -226,7 +226,6 @@ public class OrganizationService {
     return existing;
   }
 
-  @Transactional
   public void updateComplianceStatus(Organization organization) {
     boolean compliant =
         documentService.hasAllRequiredDocumentsActive(
@@ -278,6 +277,7 @@ public class OrganizationService {
             () -> repository.save(organization));
 
     branchService.createDefaultBranch(approved);
+    updateComplianceStatus(approved);
     notificationService.sendOrganizationWelcome(approved);
     outboxService.publish(
         DomainEvents.Organization.CREATED,

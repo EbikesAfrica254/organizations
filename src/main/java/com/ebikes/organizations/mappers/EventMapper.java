@@ -13,6 +13,7 @@ import com.ebikes.organizations.dtos.events.outgoing.OrganizationCreatedEvent;
 public interface EventMapper {
   @Mapping(target = "displayName", source = "organization.displayName")
   @Mapping(target = "organizationId", source = "organization.id")
+  @Mapping(target = "ownerId", source = "organization.ownerId")
   @Mapping(target = "serviceReference", source = "serviceReference")
   OrganizationCreatedEvent toOrganizationCreatedEvent(
       Organization organization, String serviceReference);

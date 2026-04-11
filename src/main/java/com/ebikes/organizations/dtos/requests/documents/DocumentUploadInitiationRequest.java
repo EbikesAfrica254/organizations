@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 import com.ebikes.organizations.enums.DocumentType;
 
 public record DocumentUploadInitiationRequest(
-    @NotBlank String contentType,
+    @NotBlank String templateContentType,
     @NotNull DocumentType documentType,
     @Future LocalDate expiryDate,
     @NotBlank @Size(max = 255, message = "File name must not exceed 255 characters") String fileName) {}

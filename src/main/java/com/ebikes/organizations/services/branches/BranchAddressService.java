@@ -55,6 +55,7 @@ public class BranchAddressService {
             .branch(branch)
             .city(organizationAddress.city())
             .country(organizationAddress.country())
+            .createdBy(branch.getCreatedBy())
             .latitude(organizationAddress.latitude())
             .longitude(organizationAddress.longitude())
             .postalCode(organizationAddress.postalCode())
