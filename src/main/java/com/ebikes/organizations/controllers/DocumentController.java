@@ -25,7 +25,9 @@ import com.ebikes.organizations.enums.DocumentType;
 import com.ebikes.organizations.services.documents.DocumentService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/documents")
 @RestController
@@ -40,7 +42,7 @@ public class DocumentController {
         documentService.initiateUpload(
             request.documentType(),
             request.fileName(),
-            request.contentType(),
+            request.templateContentType(),
             request.expiryDate());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(SuccessResponse.of(response, "Upload initiated successfully."));
@@ -71,7 +73,7 @@ public class DocumentController {
       @PathVariable UUID id, @Valid @RequestBody DocumentUploadInitiationRequest request) {
     DocumentUploadInitiationResponse response =
         documentService.replaceDocument(
-            id, request.fileName(), request.contentType(), request.expiryDate());
+            id, request.fileName(), request.templateContentType(), request.expiryDate());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(SuccessResponse.of(response, "Document replacement initiated"));
   }
