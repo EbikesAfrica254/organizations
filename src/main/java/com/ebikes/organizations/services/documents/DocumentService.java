@@ -471,7 +471,7 @@ public class DocumentService {
           String.format(
               "Content type %s not allowed for %s. Allowed types: %s",
               contentType, documentType, allowedContentTypes),
-          "contentType",
+          "templateContentType",
           contentType);
     }
   }

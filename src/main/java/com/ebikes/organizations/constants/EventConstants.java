@@ -65,6 +65,8 @@ public final class EventConstants {
       public static final String DEACTIVATED = Source.ORGANIZATIONS + ".organization.deactivated";
       public static final String REJECTED = Source.ORGANIZATIONS + ".organization.rejected";
       public static final String UPDATED = Source.ORGANIZATIONS + ".organization.updated";
+      public static final String WELCOME_EMAIL_DISPATCHED =
+          Source.ORGANIZATIONS + ".organization.welcome-email-dispatched";
     }
   }
 
